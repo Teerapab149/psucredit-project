@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String          @id @default(cuid())
+  email            String          @unique
+  studentId        String?         @unique
+  name             String?
+  passwordHash     String
+  role             Role            @default(STUDENT)
+  curriculumYear   CurriculumYear? @relation(fields: [curriculumYearId], references: [id])
+  curriculumYearId String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  userSubjects     UserSubject[]
+  studyPlans       StudyPlan[]     // เพิ่ม: รองรับฟีเจอร์ Saved Plan
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model CurriculumYear {
+  id         String               @id @default(cuid())
+  year       Int                  @unique
+  name       String
+  faculty    String?
+  department String?
+  major      String?
+  track      String?
+  isActive   Boolean              @default(true)
+  categories CurriculumCategory[]
+  users      User[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+}
+
+model CurriculumCategory {
+  id               String               @id @default(cuid())
+  name             String
+  requiredCredits  Int
+  minCredits       Int?
+  maxCredits       Int?
+  isElective       Boolean              @default(false)
+  sortOrder        Int                  @default(0)
+  parentId         String?
+  parent           CurriculumCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children         CurriculumCategory[] @relation("CategoryHierarchy")
+  curriculumYear   CurriculumYear       @relation(fields: [curriculumYearId], references: [id], onDelete: Cascade)
+  curriculumYearId String
+  subjects         Subject[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model Subject {
+  id           String               @id @default(cuid())
+  code         String
+  name         String
+  credits      Int
+  category     CurriculumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId   String
+  userSubjects UserSubject[]
+  planSubjects PlanSubject[]        // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([code, categoryId])
+}
+
+// ประวัติการเรียนจริง (ดึงจากไฟล์ PDF)
+model UserSubject {
+  id        String        @id @default(cuid())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  subject   Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId String?
+  code      String
+  name      String
+  credits   Int
+  grade     String?
+  status    SubjectStatus @default(PASSED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([userId, code])
+}
+
+// --- ส่วนที่เพิ่มใหม่สำหรับการจำลองผลการเรียน ---
+
+model StudyPlan {
+  id           String        @id @default(cuid())
+  name         String        @default("แผนการเรียนจำลอง") 
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  planSubjects PlanSubject[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model PlanSubject {
+  id            String    @id @default(cuid())
+  plan          StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId        String
+  subject       Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId     String?
+  code          String
+  name          String
+  credits       Int
+  expectedGrade String?   // เก็บเกรดสมมติ
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([planId, code]) // ป้องกันการลงวิชาซ้ำในแผนเดียวกัน
+}
+
+enum SubjectStatus {
+  PASSED
+  IN_PROGRESS
+  FAILED
+  WITHDRAWN
+}

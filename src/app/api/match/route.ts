@@ -1,0 +1,210 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type { ParsedSubject, CategoryMatch, MatchResult } from "@/types";
+
+export const dynamic = "force-dynamic";
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const {
+            subjects,
+            curriculumYearId,
+            studentInfo,
+        }: { subjects: ParsedSubject[]; curriculumYearId?: string; studentInfo?: any } = body;
+
+        if (!subjects || !Array.isArray(subjects)) {
+            return NextResponse.json(
+                { error: "Subjects array is required" },
+                { status: 400 }
+            );
+        }
+
+        // Get curriculum year (use provided or default active)
+        let curriculumYear;
+        if (curriculumYearId) {
+            curriculumYear = await prisma.curriculumYear.findUnique({
+                where: { id: curriculumYearId },
+            });
+        }
+
+        if (!curriculumYear && studentInfo) {
+            // Find all active curriculums up to the student's admission year
+            const matchingCurriculums = await prisma.curriculumYear.findMany({
+                where: {
+                    isActive: true,
+                    year: { lte: studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999 },
+                },
+                orderBy: { year: "desc" },
+            });
+
+            // Find the best match
+            for (const curr of matchingCurriculums) {
+                const facultyMatch = !curr.faculty || curr.faculty === studentInfo.faculty;
+                const majorMatch = !curr.major || curr.major === studentInfo.major;
+                const trackMatch = !curr.track || curr.track === studentInfo.track;
+
+                if (facultyMatch && majorMatch && trackMatch) {
+                    curriculumYear = curr;
+                    break;
+                }
+            }
+        }
+
+        // Fallback if no specific match
+        if (!curriculumYear) {
+            curriculumYear = await prisma.curriculumYear.findFirst({
+                where: { isActive: true },
+                orderBy: { year: "desc" },
+            });
+        }
+
+        if (!curriculumYear) {
+            // Return empty result if no curriculum set up yet or matched
+            return NextResponse.json({
+                curriculumYear: 0,
+                curriculumName: "No curriculum found",
+                categories: [],
+                totalRequired: 0,
+                totalCompleted: subjects
+                    .filter((s) => s.status === "COMPLETED")
+                    .reduce((sum, s) => sum + s.credits, 0),
+                totalInProgress: subjects
+                    .filter((s) => s.status === "IN_PROGRESS")
+                    .reduce((sum, s) => sum + s.credits, 0),
+                totalMissing: 0,
+                unmatchedSubjects: subjects,
+            } as MatchResult);
+        }
+
+        // Fetch full curriculum tree
+        const categories = await prisma.curriculumCategory.findMany({
+            where: { curriculumYearId: curriculumYear.id },
+            include: { subjects: true },
+            orderBy: { sortOrder: "asc" },
+        });
+
+        // Build tree structure
+        const categoryMap = new Map<string, (typeof categories)[0]>();
+        const rootCategories: (typeof categories)[0][] = [];
+
+        for (const cat of categories) {
+            categoryMap.set(cat.id, cat);
+            if (!cat.parentId) {
+                rootCategories.push(cat);
+            }
+        }
+
+        // Track which subjects are matched
+        const matchedCodes = new Set<string>();
+
+        // Recursive match function
+        function matchCategory(
+            cat: (typeof categories)[0]
+        ): CategoryMatch {
+            const children = categories.filter((c: (typeof categories)[0]) => c.parentId === cat.id);
+            const childMatches = children.map(matchCategory);
+
+            // Match subjects at this leaf level
+            const matchedSubjects = [];
+            const missingSubjects = [];
+
+            for (const dbSubject of cat.subjects) {
+                const found = subjects.find(
+                    (s) =>
+                        s.code === dbSubject.code &&
+                        !matchedCodes.has(`${s.code}-${cat.id}`)
+                );
+                if (found) {
+                    matchedCodes.add(`${found.code}-${cat.id}`);
+                    matchedSubjects.push({
+                        code: found.code,
+                        name: found.name,
+                        credits: found.credits,
+                        grade: found.grade,
+                        status: found.status,
+                    });
+                } else {
+                    missingSubjects.push({
+                        code: dbSubject.code,
+                        name: dbSubject.name,
+                        credits: dbSubject.credits,
+                    });
+                }
+            }
+
+            // Calculate credits (own + children)
+            const ownCompleted = matchedSubjects
+                .filter((s) => s.status === "COMPLETED")
+                .reduce((sum, s) => sum + s.credits, 0);
+            const ownInProgress = matchedSubjects
+                .filter((s) => s.status === "IN_PROGRESS")
+                .reduce((sum, s) => sum + s.credits, 0);
+
+            const childCompleted = childMatches.reduce(
+                (sum: number, c: CategoryMatch) => sum + c.completedCredits,
+                0
+            );
+            const childInProgress = childMatches.reduce(
+                (sum: number, c: CategoryMatch) => sum + c.inProgressCredits,
+                0
+            );
+
+            return {
+                categoryId: cat.id,
+                categoryName: cat.name,
+                parentName: cat.parentId
+                    ? categoryMap.get(cat.parentId)?.name || null
+                    : null,
+                requiredCredits: cat.requiredCredits,
+                completedCredits: ownCompleted + childCompleted,
+                inProgressCredits: ownInProgress + childInProgress,
+                isElective: cat.isElective,
+                matchedSubjects,
+                missingSubjects,
+                children: childMatches,
+            };
+        }
+
+        const result: CategoryMatch[] = rootCategories.map(matchCategory);
+
+        // Find unmatched subjects
+        const allMatchedCodes = new Set(
+            Array.from(matchedCodes).map((key) => key.split("-")[0])
+        );
+        const unmatchedSubjects = subjects.filter(
+            (s) => !allMatchedCodes.has(s.code)
+        );
+
+        const totalRequired = result.reduce(
+            (sum, c) => sum + c.requiredCredits,
+            0
+        );
+        const totalCompleted = result.reduce(
+            (sum, c) => sum + c.completedCredits,
+            0
+        );
+        const totalInProgress = result.reduce(
+            (sum, c) => sum + c.inProgressCredits,
+            0
+        );
+
+        const matchResult: MatchResult = {
+            curriculumYear: curriculumYear.year,
+            curriculumName: curriculumYear.name,
+            categories: result,
+            totalRequired,
+            totalCompleted,
+            totalInProgress,
+            totalMissing: totalRequired - totalCompleted,
+            unmatchedSubjects,
+        };
+
+        return NextResponse.json(matchResult);
+    } catch (error) {
+        console.error("Match error:", error);
+        return NextResponse.json(
+            { error: "Failed to match curriculum" },
+            { status: 500 }
+        );
+    }
+}
