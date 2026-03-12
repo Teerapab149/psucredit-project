@@ -28,26 +28,16 @@ export async function POST(request: Request) {
         const subjects: ParsedImportSubject[] = [];
 
         for (const line of lines) {
-            // Try to extract: code (XXX-XXX), then name, then credits
-            const match = line.match(
-                /([A-Za-z0-9]{3}-[A-Za-z0-9]+)\s+(.+?)\s+(\d+)\s*$/
-            );
+            // Robust regex: matches "XXX-XXX" or "315-201G7" codes, text, and credits
+            // Ignore trailing brackets or data since the matching group ends at credits
+            const match = line.match(/([a-zA-Z0-9]{3}-[a-zA-Z0-9]{3,5})\s+(.+?)\s+(\d+)\s*(?:\(|\[|$)/);
+            
             if (match) {
                 subjects.push({
                     code: match[1],
                     name: match[2].trim(),
                     credits: parseInt(match[3]),
                 });
-            } else {
-                // Try alternative: just "XXX-XXX Name" (credits might be missing)
-                const altMatch = line.match(/([A-Za-z0-9]{3}-[A-Za-z0-9]+)\s+(.+)/);
-                if (altMatch) {
-                    subjects.push({
-                        code: altMatch[1],
-                        name: altMatch[2].trim(),
-                        credits: 3, // default
-                    });
-                }
             }
         }
 

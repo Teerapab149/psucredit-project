@@ -25,6 +25,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useCreditStore } from "@/store/credit-store";
 import type { MatchResult, CategoryMatch } from "@/types";
 
@@ -205,9 +212,9 @@ export default function ResultsPage() {
         useCreditStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedTrack, setSelectedTrack] = useState<string>("แผนปกติ");
 
     useEffect(() => {
-        if (matchResult) return; // Already have results
         if (verifiedSubjects.length === 0) return;
 
         const fetchResults = async () => {
@@ -218,7 +225,8 @@ export default function ResultsPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         subjects: verifiedSubjects,
-                        studentInfo: studentInfo
+                        studentInfo: studentInfo,
+                        track: selectedTrack
                     }),
                 });
                 const data: MatchResult = await res.json();
@@ -231,7 +239,7 @@ export default function ResultsPage() {
         };
 
         fetchResults();
-    }, [verifiedSubjects, matchResult, setMatchResult]);
+    }, [verifiedSubjects, studentInfo, selectedTrack, setMatchResult]);
 
     if (verifiedSubjects.length === 0 && !matchResult) {
         return (
@@ -263,7 +271,7 @@ export default function ResultsPage() {
                 >
                     <div className="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
                     <p className="text-lg font-medium text-slate-700">
-                        Matching your subjects with curriculum...
+                        Analyzing '{selectedTrack}' curriculum...
                     </p>
                 </motion.div>
             </div>
@@ -343,14 +351,25 @@ export default function ResultsPage() {
                                 )}
                             </p>
                         </div>
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push("/verify")}
-                            className="gap-2"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Edit Subjects
-                        </Button>
+                        <div className="flex items-center gap-4">
+                            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+                                <SelectTrigger className="w-[180px] bg-white border-slate-200">
+                                    <SelectValue placeholder="Select Track" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="แผนปกติ">แผนปกติ (Normal Plan)</SelectItem>
+                                    <SelectItem value="แผนสหกิจศึกษา">แผนสหกิจศึกษา (Co-op Plan)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push("/verify")}
+                                className="gap-2"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Edit Subjects
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Summary Cards */}

@@ -28,13 +28,19 @@ enum Role {
 
 model CurriculumYear {
   id         String               @id @default(cuid())
-  year       Int                  @unique
+  startYear  Int?
+  endYear    Int?
   name       String
   faculty    String?
   department String?
   major      String?
   track      String?
   isActive   Boolean              @default(true)
+  
+  baseTemplateId   String?
+  baseTemplate     CurriculumYear?  @relation("TemplateRelation", fields: [baseTemplateId], references: [id])
+  derivedTemplates CurriculumYear[] @relation("TemplateRelation")
+
   categories CurriculumCategory[]
   users      User[]
   createdAt  DateTime             @default(now())

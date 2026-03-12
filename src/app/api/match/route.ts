@@ -10,7 +10,10 @@ export async function POST(request: Request) {
             subjects,
             curriculumYearId,
             studentInfo,
-        }: { subjects: ParsedSubject[]; curriculumYearId?: string; studentInfo?: any } = body;
+            track,
+        }: { subjects: ParsedSubject[]; curriculumYearId?: string; studentInfo?: any; track?: string } = body;
+
+        const requestedTrack = track || "แผนปกติ";
 
         if (!subjects || !Array.isArray(subjects)) {
             return NextResponse.json(
@@ -54,8 +57,8 @@ export async function POST(request: Request) {
         if (!curriculumYear) {
             curriculumYear = await prisma.curriculumYear.findFirst({
                 where: { isActive: true },
-                orderBy: { year: "desc" },
-            });
+                orderBy: { startYear: "desc" }, // Fixed to startYear instead of year since schema updated
+            }) as any;
         }
 
         if (!curriculumYear) {
@@ -77,11 +80,23 @@ export async function POST(request: Request) {
         }
 
         // Fetch full curriculum tree
-        const categories = await prisma.curriculumCategory.findMany({
+        let categories = await prisma.curriculumCategory.findMany({
             where: { curriculumYearId: curriculumYear.id },
             include: { subjects: true },
             orderBy: { sortOrder: "asc" },
         });
+
+        // Merge Base Template Categories if exists
+        const baseId = (curriculumYear as any).baseTemplateId;
+        if (baseId) {
+            const baseCategories = await prisma.curriculumCategory.findMany({
+                where: { curriculumYearId: baseId },
+                include: { subjects: true },
+                orderBy: { sortOrder: "asc" },
+            });
+            // Merge them into the same pool
+            categories = [...baseCategories, ...categories];
+        }
 
         // Build tree structure
         const categoryMap = new Map<string, (typeof categories)[0]>();
@@ -100,9 +115,20 @@ export async function POST(request: Request) {
         // Recursive match function
         function matchCategory(
             cat: (typeof categories)[0]
-        ): CategoryMatch {
+        ): CategoryMatch | null {
+            // Pruning Logic: Skip category if it explicitly belongs to another track
+            const catNameLower = cat.name.toLowerCase();
+            const isNormalPlanCat = catNameLower.includes("แผนปกติ") || catNameLower.includes("normal plan");
+            const isCoopPlanCat = catNameLower.includes("แผนสหกิจ") || catNameLower.includes("co-op") || catNameLower.includes("coop");
+
+            const isRequestedNormal = requestedTrack.includes("แผนปกติ") || requestedTrack.toLowerCase().includes("normal");
+            const isRequestedCoop = requestedTrack.includes("แผนสหกิจ") || requestedTrack.toLowerCase().includes("co-op") || requestedTrack.toLowerCase().includes("coop");
+
+            if (isNormalPlanCat && !isRequestedNormal) return null;
+            if (isCoopPlanCat && !isRequestedCoop) return null;
+
             const children = categories.filter((c: (typeof categories)[0]) => c.parentId === cat.id);
-            const childMatches = children.map(matchCategory);
+            const childMatches = children.map(matchCategory).filter(Boolean) as CategoryMatch[];
 
             // Match subjects at this leaf level
             const matchedSubjects = [];
@@ -165,7 +191,7 @@ export async function POST(request: Request) {
             };
         }
 
-        const result: CategoryMatch[] = rootCategories.map(matchCategory);
+        const result: CategoryMatch[] = rootCategories.map(matchCategory).filter(Boolean) as CategoryMatch[];
 
         // Find unmatched subjects
         const allMatchedCodes = new Set(
@@ -189,7 +215,7 @@ export async function POST(request: Request) {
         );
 
         const matchResult: MatchResult = {
-            curriculumYear: curriculumYear.year,
+            curriculumYear: (curriculumYear as any).startYear || 0,
             curriculumName: curriculumYear.name,
             categories: result,
             totalRequired,

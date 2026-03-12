@@ -7,13 +7,22 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
     const { pathname } = req.nextUrl;
 
-    // Protect admin routes
+    // Allow access to the admin login page without authentication
+    if (pathname === "/admin/login") {
+        return NextResponse.next();
+    }
+
+    // Protect all other /admin/* routes
     if (pathname.startsWith("/admin")) {
         const session = req.auth;
+
+        // Not logged in → redirect to admin login
         if (!session?.user) {
-            return NextResponse.redirect(new URL("/login", req.url));
+            return NextResponse.redirect(new URL("/admin/login", req.url));
         }
-        const role = (session.user as Record<string, unknown>).role;
+
+        // Logged in but not ADMIN → redirect to home
+        const role = session.user.role;
         if (role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", req.url));
         }

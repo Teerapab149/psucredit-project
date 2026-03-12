@@ -15,20 +15,25 @@ export async function detectCurriculumYear(studentId: string) {
 
     const buddhistYear = 2500 + yearPrefix; // e.g., 66 → 2566
 
-    // Try exact match first
-    let curriculum = await prisma.curriculumYear.findUnique({
-        where: { year: buddhistYear },
+    // Try finding an active curriculum where the student's entry year falls within [startYear, endYear]
+    // If endYear is null, it means the curriculum is active from startYear onwards.
+    let curriculums = await prisma.curriculumYear.findMany({
+        where: {
+            isActive: true,
+            startYear: { lte: buddhistYear },
+        },
+        orderBy: { startYear: "desc" },
     });
 
-    if (!curriculum) {
-        // Fallback: closest active curriculum year ≤ entry year
-        curriculum = await prisma.curriculumYear.findFirst({
-            where: { year: { lte: buddhistYear }, isActive: true },
-            orderBy: { year: "desc" },
-        });
+    // Filter by endYear in JS since OR conditions with null can be tricky in older Prisma clients
+    let curriculum = curriculums.find(c => c.endYear === null || c.endYear >= buddhistYear);
+
+    if (!curriculum && curriculums.length > 0) {
+        // Fallback: Just take the most recent active curriculum that started before or on the entry year
+        curriculum = curriculums[0];
     }
 
-    return curriculum;
+    return curriculum || null;
 }
 
 /**
