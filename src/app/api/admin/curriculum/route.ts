@@ -134,3 +134,24 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: "Failed to update curriculum" }, { status: 500 });
     }
 }
+
+// DELETE curriculum year
+export async function DELETE(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get("id");
+
+        if (!id) {
+            return NextResponse.json({ error: "Missing curriculum ID" }, { status: 400 });
+        }
+
+        await prisma.curriculumYear.delete({
+            where: { id },
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error("DELETE /api/admin/curriculum Error:", error?.message || error);
+        return NextResponse.json({ error: "Failed to delete curriculum" }, { status: 500 });
+    }
+}

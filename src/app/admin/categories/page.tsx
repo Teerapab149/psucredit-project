@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, FolderTree, ArrowDownRight, Layers, Pencil } from "lucide-react";
+import { Plus, FolderTree, ArrowDownRight, Layers, Pencil, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
     Select,
     SelectContent,
@@ -210,6 +211,38 @@ export default function CategoriesPage() {
     }, [selectedYear]);
 
     const [isLinkedTemplateModalOpen, setIsLinkedTemplateModalOpen] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSync = async () => {
+        if (!selectedYear?.id) return;
+        
+        setIsSyncing(true);
+        try {
+            const res = await fetch("/api/admin/curriculum/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ facultyCurriculumId: selectedYear.id }),
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                if (data.addedCount > 0) {
+                    toast.success(`Sync complete! Added ${data.addedCount} new categories.`);
+                    fetchYears(); // Refresh data
+                } else {
+                    toast.info("Already up to date with Master Template.");
+                }
+            } else {
+                toast.error(data.error || "Failed to sync updates");
+            }
+        } catch (error) {
+            console.error("Sync error:", error);
+            toast.error("An error occurred during sync");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     // Recursive component to render the category tree beautifully
     const CategoryNode = ({ category, level = 0 }: { category: Category, level?: number }) => {
@@ -453,8 +486,20 @@ export default function CategoriesPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-xs font-medium text-indigo-600 bg-indigo-100/50 px-2 py-1 rounded">
-                                Inherited nodes are marked below
+                            <div className="flex items-center gap-2">
+                                <div className="text-xs font-medium text-indigo-600 bg-indigo-100/50 px-2 py-1 rounded">
+                                    Inherited nodes are marked below
+                                </div>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleSync}
+                                    disabled={isSyncing}
+                                    className="bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-8 gap-2"
+                                >
+                                    <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                                    {isSyncing ? "Syncing..." : "Sync Updates"}
+                                </Button>
                             </div>
                         </div>
                     )}

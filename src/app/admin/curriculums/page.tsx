@@ -40,7 +40,19 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface CurriculumYear {
     id: string;
@@ -132,6 +144,23 @@ export default function CurriculumsPage() {
 
         handleSheetClose(false);
         fetchYears();
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/curriculum?id=${id}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                toast.success("Curriculum deleted successfully");
+                fetchYears();
+            } else {
+                toast.error("Failed to delete curriculum");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("An error occurred while deleting");
+        }
     };
 
     const openEditDialog = (curriculum: CurriculumYear & { isTemplate?: boolean }) => {
@@ -526,9 +555,31 @@ export default function CurriculumsPage() {
                                                     <Button variant="ghost" size="icon" title="Edit Template" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" title="Delete Template" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" title="Delete Template" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This action cannot be undone. This will permanently delete the 
+                                                                    <strong> {y.name}</strong> master template and all its associated categories.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction 
+                                                                    onClick={() => handleDelete(y.id)}
+                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                >
+                                                                    Delete
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -620,9 +671,31 @@ export default function CurriculumsPage() {
                                                                     <Button variant="ghost" size="icon" title="Clone Curriculum" onClick={() => openCloneDialog(y)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8">
                                                                         <Copy className="h-4 w-4" />
                                                                     </Button>
-                                                                    <Button variant="ghost" size="icon" title="Delete Curriculum" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
+                                                                    <AlertDialog>
+                                                                        <AlertDialogTrigger asChild>
+                                                                            <Button variant="ghost" size="icon" title="Delete Curriculum" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </AlertDialogTrigger>
+                                                                        <AlertDialogContent>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                                <AlertDialogDescription>
+                                                                                    This action cannot be undone. This will permanently delete the 
+                                                                                    <strong> {y.name}</strong> curriculum and all its associated categories.
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                                <AlertDialogAction 
+                                                                                    onClick={() => handleDelete(y.id)}
+                                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                                >
+                                                                                    Delete
+                                                                                </AlertDialogAction>
+                                                                            </AlertDialogFooter>
+                                                                        </AlertDialogContent>
+                                                                    </AlertDialog>
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}

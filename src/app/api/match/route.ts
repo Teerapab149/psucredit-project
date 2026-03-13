@@ -252,8 +252,9 @@ export async function POST(request: Request) {
                 if (spaceLeft > 0) {
                     const remainingForNextBucket = [];
                     for (const subject of currentUnmatchedSubjects) {
-                        if (spaceLeft >= subject.credits) {
-                            // Fits entirely! Consume it
+                        // As long as the bucket still needs credits, consume the next available subject.
+                        // It is perfectly fine if spaceLeft becomes negative (Natural Overflow).
+                        if (spaceLeft > 0) {
                             targetCat.matchedSubjects.push({
                                 code: subject.code,
                                 name: subject.name,
@@ -261,16 +262,9 @@ export async function POST(request: Request) {
                                 grade: subject.grade,
                                 status: subject.status,
                             });
-                            spaceLeft -= subject.credits;
-                        } else if (spaceLeft > 0 && spaceLeft < subject.credits) {
-                            // Partially fits - we consume what we can to fill the bucket
-                            // But keeping it simple for now, we just don't split courses. 
-                            // We only take full courses that fit.
-                            // If a university policy splits a 3-credit course into 1 Cr + 2 Cr, 
-                            // that would require fractional subject tracking.
-                            remainingForNextBucket.push(subject);
+                            spaceLeft -= subject.credits; // Might become negative, effectively filling the bucket and catching the overflow.
                         } else {
-                            // No space left
+                            // Bucket is full (spaceLeft <= 0)
                             remainingForNextBucket.push(subject);
                         }
                     }
