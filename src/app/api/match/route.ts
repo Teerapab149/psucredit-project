@@ -35,9 +35,9 @@ export async function POST(request: Request) {
             const matchingCurriculums = await prisma.curriculumYear.findMany({
                 where: {
                     isActive: true,
-                    year: { lte: studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999 },
+                    startYear: { lte: studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999 },
                 },
-                orderBy: { year: "desc" },
+                orderBy: { startYear: "desc" },
             });
 
             // Find the best match
@@ -86,17 +86,10 @@ export async function POST(request: Request) {
             orderBy: { sortOrder: "asc" },
         });
 
-        // Merge Base Template Categories if exists
-        const baseId = (curriculumYear as any).baseTemplateId;
-        if (baseId) {
-            const baseCategories = await prisma.curriculumCategory.findMany({
-                where: { curriculumYearId: baseId },
-                include: { subjects: true },
-                orderBy: { sortOrder: "asc" },
-            });
-            // Merge them into the same pool
-            categories = [...baseCategories, ...categories];
-        }
+        // No need to merge Base Template Categories
+        // Categories from the base template are now physically cloned 
+        // into the Faculty Curriculum via the Clone step.
+        // We strictly match against the active faculty tree.
 
         // Build tree structure
         const categoryMap = new Map<string, (typeof categories)[0]>();
@@ -193,13 +186,109 @@ export async function POST(request: Request) {
 
         const result: CategoryMatch[] = rootCategories.map(matchCategory).filter(Boolean) as CategoryMatch[];
 
-        // Find unmatched subjects
+        // --- Phase 2: Waterfall Spillover Logic ---
+        // 1. Find all explicit unmatched subjects 
         const allMatchedCodes = new Set(
             Array.from(matchedCodes).map((key) => key.split("-")[0])
         );
-        const unmatchedSubjects = subjects.filter(
+        let currentUnmatchedSubjects = subjects.filter(
             (s) => !allMatchedCodes.has(s.code)
         );
+
+        // Calculate credits for a given category (own + children)
+        const recalculateCategoryCredits = (catMatch: CategoryMatch) => {
+            const ownCompleted = catMatch.matchedSubjects
+                .filter((s) => s.status === "COMPLETED")
+                .reduce((sum, s) => sum + s.credits, 0);
+            const ownInProgress = catMatch.matchedSubjects
+                .filter((s) => s.status === "IN_PROGRESS")
+                .reduce((sum, s) => sum + s.credits, 0);
+
+            let childCompleted = 0;
+            let childInProgress = 0;
+
+            if (catMatch.children && catMatch.children.length > 0) {
+                catMatch.children.forEach(child => {
+                    recalculateCategoryCredits(child);
+                    childCompleted += child.completedCredits;
+                    childInProgress += child.inProgressCredits;
+                });
+            }
+
+            catMatch.completedCredits = ownCompleted + childCompleted;
+            catMatch.inProgressCredits = ownInProgress + childInProgress;
+        };
+
+        // Helper to spillover subjects into a specific category type
+        const processSpillover = (spilloverType: string) => {
+            // Find all categories configured for this spillover type
+            const targetCategories: CategoryMatch[] = [];
+            
+            const findTargets = (node: CategoryMatch) => {
+                const dbCat = categoryMap.get(node.categoryId);
+                if (dbCat && (dbCat as any).spilloverType === spilloverType) {
+                    targetCategories.push(node);
+                }
+                if (node.children) {
+                    node.children.forEach(findTargets);
+                }
+            };
+            
+            result.forEach(findTargets);
+
+            for (const targetCat of targetCategories) {
+                // If there are no unmatched subjects left, stop
+                if (currentUnmatchedSubjects.length === 0) break;
+
+                const dbCat = categoryMap.get(targetCat.categoryId);
+                if (!dbCat) continue;
+                
+                // Keep filling until maxCredits is reached, or required if max is not set
+                const limit = dbCat.maxCredits || dbCat.requiredCredits;
+
+                // How much more can we fit?
+                let spaceLeft = limit - targetCat.completedCredits - targetCat.inProgressCredits;
+
+                if (spaceLeft > 0) {
+                    const remainingForNextBucket = [];
+                    for (const subject of currentUnmatchedSubjects) {
+                        if (spaceLeft >= subject.credits) {
+                            // Fits entirely! Consume it
+                            targetCat.matchedSubjects.push({
+                                code: subject.code,
+                                name: subject.name,
+                                credits: subject.credits,
+                                grade: subject.grade,
+                                status: subject.status,
+                            });
+                            spaceLeft -= subject.credits;
+                        } else if (spaceLeft > 0 && spaceLeft < subject.credits) {
+                            // Partially fits - we consume what we can to fill the bucket
+                            // But keeping it simple for now, we just don't split courses. 
+                            // We only take full courses that fit.
+                            // If a university policy splits a 3-credit course into 1 Cr + 2 Cr, 
+                            // that would require fractional subject tracking.
+                            remainingForNextBucket.push(subject);
+                        } else {
+                            // No space left
+                            remainingForNextBucket.push(subject);
+                        }
+                    }
+                    currentUnmatchedSubjects = remainingForNextBucket;
+                }
+            }
+            
+            // Recalculate everything after spillover
+            result.forEach(recalculateCategoryCredits);
+        };
+
+        // Run the Waterfall!
+        // 1. Minor Subjects first
+        processSpillover("MINOR");
+        // 2. Free Electives get whatever is left
+        processSpillover("FREE_ELECTIVE");
+
+        const unmatchedSubjects = currentUnmatchedSubjects;
 
         const totalRequired = result.reduce(
             (sum, c) => sum + c.requiredCredits,

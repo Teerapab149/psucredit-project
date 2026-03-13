@@ -18,7 +18,7 @@ model User {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   userSubjects     UserSubject[]
-  studyPlans       StudyPlan[]     // เพิ่ม: รองรับฟีเจอร์ Saved Plan
+  studyPlans       StudyPlan[] // เพิ่ม: รองรับฟีเจอร์ Saved Plan
 }
 
 enum Role {
@@ -27,7 +27,7 @@ enum Role {
 }
 
 model CurriculumYear {
-  id         String               @id @default(cuid())
+  id         String  @id @default(cuid())
   startYear  Int?
   endYear    Int?
   name       String
@@ -35,8 +35,9 @@ model CurriculumYear {
   department String?
   major      String?
   track      String?
-  isActive   Boolean              @default(true)
-  
+  isActive   Boolean @default(true)
+  isTemplate Boolean @default(false)
+
   baseTemplateId   String?
   baseTemplate     CurriculumYear?  @relation("TemplateRelation", fields: [baseTemplateId], references: [id])
   derivedTemplates CurriculumYear[] @relation("TemplateRelation")
@@ -48,34 +49,36 @@ model CurriculumYear {
 }
 
 model CurriculumCategory {
-  id               String               @id @default(cuid())
-  name             String
-  requiredCredits  Int
-  minCredits       Int?
-  maxCredits       Int?
-  isElective       Boolean              @default(false)
-  sortOrder        Int                  @default(0)
-  parentId         String?
-  parent           CurriculumCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children         CurriculumCategory[] @relation("CategoryHierarchy")
-  curriculumYear   CurriculumYear       @relation(fields: [curriculumYearId], references: [id], onDelete: Cascade)
-  curriculumYearId String
-  subjects         Subject[]
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                      String               @id @default(cuid())
+  name                    String
+  requiredCredits         Int
+  minCredits              Int?
+  maxCredits              Int?
+  isElective              Boolean              @default(false)
+  sortOrder               Int                  @default(0)
+  parentId                String?
+  parent                  CurriculumCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children                CurriculumCategory[] @relation("CategoryHierarchy")
+  inheritedFromCategoryId String?
+  spilloverType           SpilloverType?
+  curriculumYear          CurriculumYear       @relation(fields: [curriculumYearId], references: [id], onDelete: Cascade)
+  curriculumYearId        String
+  subjects                Subject[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 }
 
 model Subject {
-  id           String               @id @default(cuid())
+  id           String             @id @default(cuid())
   code         String
   name         String
   credits      Int
-  category     CurriculumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category     CurriculumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId   String
   userSubjects UserSubject[]
-  planSubjects PlanSubject[]        // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  planSubjects PlanSubject[] // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@unique([code, categoryId])
 }
@@ -102,7 +105,7 @@ model UserSubject {
 
 model StudyPlan {
   id           String        @id @default(cuid())
-  name         String        @default("แผนการเรียนจำลอง") 
+  name         String        @default("แผนการเรียนจำลอง")
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
   planSubjects PlanSubject[]
@@ -119,7 +122,7 @@ model PlanSubject {
   code          String
   name          String
   credits       Int
-  expectedGrade String?   // เก็บเกรดสมมติ
+  expectedGrade String? // เก็บเกรดสมมติ
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -131,4 +134,9 @@ enum SubjectStatus {
   IN_PROGRESS
   FAILED
   WITHDRAWN
+}
+
+enum SpilloverType {
+  MINOR
+  FREE_ELECTIVE
 }

@@ -38,6 +38,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface CurriculumYear {
     id: string;
@@ -53,6 +56,10 @@ interface CurriculumYear {
 }
 
 export default function CurriculumsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get("type") || "template";
+
     const [years, setYears] = useState<CurriculumYear[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -72,6 +79,7 @@ export default function CurriculumsPage() {
         major: "",
         track: "",
         baseTemplateId: null as string | null,
+        isTemplate: currentTab === "template",
     };
 
     const [curriculumForm, setCurriculumForm] = useState<{
@@ -84,6 +92,7 @@ export default function CurriculumsPage() {
         major: string;
         track: string;
         baseTemplateId: string | null;
+        isTemplate: boolean;
     }>(initialCurriculumState);
 
     const fetchYears = useCallback(async () => {
@@ -125,7 +134,7 @@ export default function CurriculumsPage() {
         fetchYears();
     };
 
-    const openEditDialog = (curriculum: CurriculumYear) => {
+    const openEditDialog = (curriculum: CurriculumYear & { isTemplate?: boolean }) => {
         setCurriculumForm({
             id: curriculum.id,
             name: curriculum.name,
@@ -136,6 +145,7 @@ export default function CurriculumsPage() {
             major: curriculum.major || "",
             track: curriculum.track || "",
             baseTemplateId: curriculum.baseTemplateId || null,
+            isTemplate: curriculum.isTemplate || false,
         });
         setIsSheetOpen(true);
     };
@@ -151,6 +161,7 @@ export default function CurriculumsPage() {
             major: source.major || "",
             track: source.track || "",
             baseTemplateId: source.baseTemplateId || null,
+            isTemplate: currentTab === "template",
         });
         setCloneError(null);
         setIsCloneDialogOpen(true);
@@ -184,29 +195,47 @@ export default function CurriculumsPage() {
         }
     };
 
+    // Helpers to filter data by tab
+    const templates = years.filter((y: any) => y.isTemplate);
+    const faculties = years.filter((y: any) => !y.isTemplate);
+
+    // Group faculties for Accordion
+    const groupByFaculty = (list: CurriculumYear[]) => {
+        const groups: Record<string, CurriculumYear[]> = {};
+        list.forEach(item => {
+            const facultyName = item.faculty || "Other/Unassigned";
+            if (!groups[facultyName]) groups[facultyName] = [];
+            groups[facultyName].push(item);
+        });
+        return groups;
+    };
+    const groupedFaculties = groupByFaculty(faculties);
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Curriculum Years</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Curriculum Management</h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Manage university curriculums and their active entry year ranges.
+                        Manage university master templates and specific faculty curriculums.
                     </p>
                 </div>
 
                 <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
-                    <SheetTrigger asChild>
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                            <Plus className="mr-2 h-4 w-4" /> Add Curriculum
-                        </Button>
-                    </SheetTrigger>
+                    {/* The trigger is now moved down into the TabsContent to be context-specific */}
                     <SheetContent className="overflow-y-auto sm:max-w-md w-full border-l-0 shadow-2xl">
                         <SheetHeader className="mb-6">
                             <SheetTitle className="text-xl">
-                                {curriculumForm.id ? "Edit Curriculum" : "Add Curriculum Year"}
+                                {curriculumForm.id 
+                                    ? "Edit Curriculum" 
+                                    : (currentTab === "template" ? "Add Master Template" : "Add Faculty Curriculum")}
                             </SheetTitle>
                             <SheetDescription>
-                                {curriculumForm.id ? "Update the mapping details for this curriculum." : "Create a new curriculum mapping to start organizing subjects."}
+                                {curriculumForm.id 
+                                    ? "Update the mapping details for this curriculum." 
+                                    : (currentTab === "template" 
+                                        ? "Create a new university-wide GE master template." 
+                                        : "Create a new curriculum mapping to start organizing subjects.")}
                             </SheetDescription>
                         </SheetHeader>
 
@@ -242,65 +271,71 @@ export default function CurriculumsPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700">Faculty (Opt.)</Label>
-                                <Input
-                                    placeholder='e.g. "วิทยาการจัดการ"'
-                                    value={curriculumForm.faculty}
-                                    onChange={(e) => setCurriculumForm({ ...curriculumForm, faculty: e.target.value })}
-                                    className="focus-visible:ring-blue-500"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700">Department (Opt.)</Label>
-                                <Input
-                                    placeholder='e.g. "บริหารธุรกิจ"'
-                                    value={curriculumForm.department}
-                                    onChange={(e) => setCurriculumForm({ ...curriculumForm, department: e.target.value })}
-                                    className="focus-visible:ring-blue-500"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700">Major (Opt.)</Label>
-                                <Input
-                                    placeholder='e.g. "ระบบสารสนเทศทางธุรกิจ"'
-                                    value={curriculumForm.major}
-                                    onChange={(e) => setCurriculumForm({ ...curriculumForm, major: e.target.value })}
-                                    className="focus-visible:ring-blue-500"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700">Track (Opt.)</Label>
-                                <Input
-                                    placeholder='e.g. "ปกติ"'
-                                    value={curriculumForm.track}
-                                    onChange={(e) => setCurriculumForm({ ...curriculumForm, track: e.target.value })}
-                                    className="focus-visible:ring-blue-500"
-                                />
-                            </div>
+                            {currentTab === "faculty" && (
+                                <>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">Faculty (Opt.)</Label>
+                                        <Input
+                                            placeholder='e.g. "วิทยาการจัดการ"'
+                                            value={curriculumForm.faculty}
+                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, faculty: e.target.value })}
+                                            className="focus-visible:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">Department (Opt.)</Label>
+                                        <Input
+                                            placeholder='e.g. "บริหารธุรกิจ"'
+                                            value={curriculumForm.department}
+                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, department: e.target.value })}
+                                            className="focus-visible:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">Major (Opt.)</Label>
+                                        <Input
+                                            placeholder='e.g. "ระบบสารสนเทศทางธุรกิจ"'
+                                            value={curriculumForm.major}
+                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, major: e.target.value })}
+                                            className="focus-visible:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">Track (Opt.)</Label>
+                                        <Input
+                                            placeholder='e.g. "ปกติ"'
+                                            value={curriculumForm.track}
+                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, track: e.target.value })}
+                                            className="focus-visible:ring-blue-500"
+                                        />
+                                    </div>
+                                </>
+                            )}
 
-                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                                <Label className="text-slate-700 font-semibold">Shared Base Template (Opt.)</Label>
-                                <p className="text-xs text-slate-500 mb-2">Select a master curriculum to inherit General Education courses from. This prevents data duplication.</p>
-                                <Select
-                                    value={curriculumForm.baseTemplateId || "none"}
-                                    onValueChange={(val) => setCurriculumForm({ ...curriculumForm, baseTemplateId: val === "none" ? null : val })}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="No Base Template (Custom Setup)" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">-- No Base Template (Custom Setup) --</SelectItem>
-                                        {years
-                                            .filter(y => y.id !== curriculumForm.id) // Cannot inherit from self
-                                            .map((y) => (
-                                                <SelectItem key={y.id} value={y.id}>
-                                                    {y.name} {y.startYear && `(${y.startYear})`}
-                                                </SelectItem>
-                                            ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {currentTab === "faculty" && (
+                                <div className="space-y-2 pt-2 border-t border-slate-100">
+                                    <Label className="text-slate-700 font-semibold">Inherit from Master Template (Opt.)</Label>
+                                    <p className="text-xs text-slate-500 mb-2">Select a university GE template. Its subjects will be cloned into this faculty curriculum.</p>
+                                    <Select
+                                        value={curriculumForm.baseTemplateId || "none"}
+                                        onValueChange={(val) => setCurriculumForm({ ...curriculumForm, baseTemplateId: val === "none" ? null : val })}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="No Base Template (Custom Setup)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">-- No Base Template (Custom Setup) --</SelectItem>
+                                            {templates
+                                                .filter(y => y.id !== curriculumForm.id) // Cannot inherit from self
+                                                .map((y) => (
+                                                    <SelectItem key={y.id} value={y.id}>
+                                                        {y.name} {y.startYear && `(${y.startYear})`}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
                             <div className="pt-4 border-t border-slate-100">
                                 <Button
@@ -420,88 +455,187 @@ export default function CurriculumsPage() {
                     <p className="mt-1 text-sm text-slate-500 max-w-sm text-center">
                         Get started by creating a new curriculum year to organize subjects and categories.
                     </p>
-                    <Button variant="outline" className="mt-6 border-slate-200 shadow-sm hover:bg-slate-50 hover:text-blue-600" onClick={() => setIsSheetOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Curriculum
+                    <Button variant="outline" className="mt-6 border-slate-200 shadow-sm hover:bg-slate-50 hover:text-blue-600" onClick={() => {
+                        setCurriculumForm({ ...initialCurriculumState, isTemplate: currentTab === "template" });
+                        setIsSheetOpen(true);
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> {currentTab === "template" ? "Add Master Template" : "Add Faculty Curriculum"}
                     </Button>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-slate-50/50">
-                            <TableRow className="hover:bg-transparent">
-                                <TableHead className="w-[30%] font-medium text-slate-600">Curriculum Name</TableHead>
-                                <TableHead className="font-medium text-slate-600">Active Years</TableHead>
-                                <TableHead className="font-medium text-slate-600">Faculty / Major</TableHead>
-                                <TableHead className="font-medium text-slate-600">Status</TableHead>
-                                <TableHead className="text-right font-medium text-slate-600">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {years.map((y) => (
-                                <TableRow key={y.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <TableCell>
-                                        <div className="font-medium text-slate-900">{y.name}</div>
-                                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                                            {y.track && <div className="text-xs text-slate-500">Track: {y.track}</div>}
-                                            {y.baseTemplateId && (
-                                                <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200">
-                                                    Uses GE Template
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {y.startYear ? (
-                                            <Badge variant="secondary" className="font-mono bg-slate-100 text-slate-700 hover:bg-slate-200 border-none">
-                                                {y.startYear} {y.endYear ? `- ${y.endYear}` : '- Present'}
-                                            </Badge>
-                                        ) : (
-                                            <span className="text-slate-400 text-sm italic">Not specified</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {y.faculty || y.major ? (
-                                            <div className="text-sm">
-                                                {y.faculty && <div className="text-slate-700">{y.faculty}</div>}
-                                                {y.major && <div className="text-slate-500 mt-0.5">{y.major}</div>}
+                <Tabs value={currentTab} onValueChange={(val) => {
+                    router.push(`/admin/curriculums?type=${val}`);
+                }} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 max-w-md mb-6">
+                        <TabsTrigger value="template">🏛️ Master Templates</TabsTrigger>
+                        <TabsTrigger value="faculty">🎓 Faculty Curriculums</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="template" className="mt-0 outline-none">
+                        <div className="flex justify-end mb-4">
+                            <Button 
+                                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                                onClick={() => {
+                                    setCurriculumForm({ ...initialCurriculumState, isTemplate: true });
+                                    setIsSheetOpen(true);
+                                }}
+                            >
+                                <Plus className="mr-2 h-4 w-4" /> Add Master Template
+                            </Button>
+                        </div>
+                        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                            <Table>
+                                <TableHeader className="bg-slate-50/50">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="w-[30%] font-medium text-slate-600">Template Name</TableHead>
+                                        <TableHead className="font-medium text-slate-600">Active Years</TableHead>
+                                        <TableHead className="font-medium text-slate-600">Status</TableHead>
+                                        <TableHead className="text-right font-medium text-slate-600">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {templates.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                                                No master templates found.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        templates.map((y) => (
+                                            <TableRow key={y.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <TableCell>
+                                                    <div className="font-medium text-slate-900">{y.name}</div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {y.startYear ? (
+                                                        <Badge variant="secondary" className="font-mono bg-slate-100 text-slate-700 hover:bg-slate-200 border-none">
+                                                            {y.startYear} {y.endYear ? `- ${y.endYear}` : '- Present'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-slate-400 text-sm italic">Not specified</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {y.isActive ? (
+                                                        <Badge className="bg-green-50 text-green-700 hover:bg-green-100 ring-1 ring-inset ring-green-600/20 shadow-none">Active</Badge>
+                                                    ) : (
+                                                        <Badge className="bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/20 shadow-none">Inactive</Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right space-x-1">
+                                                    <Button variant="ghost" size="icon" title="Edit Template" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" title="Delete Template" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="faculty" className="mt-0 outline-none space-y-4">
+                        <div className="flex justify-end mb-2">
+                            <Button 
+                                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                                onClick={() => {
+                                    setCurriculumForm({ ...initialCurriculumState, isTemplate: false });
+                                    setIsSheetOpen(true);
+                                }}
+                            >
+                                <Plus className="mr-2 h-4 w-4" /> Add Faculty Curriculum
+                            </Button>
+                        </div>
+                        {Object.keys(groupedFaculties).length === 0 ? (
+                             <div className="text-center py-8 text-slate-500 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                 No faculty curriculums found.
+                             </div>
+                        ) : (
+                            <Accordion type="multiple" defaultValue={Object.keys(groupedFaculties)} className="w-full space-y-4">
+                                {Object.entries(groupedFaculties).map(([facultyName, facultyList]) => (
+                                    <AccordionItem key={facultyName} value={facultyName} className="bg-white border text-card-foreground shadow-sm rounded-lg overflow-hidden data-[state=open]:pb-2">
+                                        <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-slate-50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                                    <Calendar className="h-4 w-4" />
+                                                </div>
+                                                <h3 className="text-base font-semibold">{facultyName}</h3>
+                                                <Badge variant="secondary" className="ml-2 font-normal text-xs">{facultyList.length} Curriculums</Badge>
                                             </div>
-                                        ) : (
-                                            <span className="text-slate-300">-</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {y.isActive ? (
-                                            <Badge className="bg-green-50 text-green-700 hover:bg-green-100 ring-1 ring-inset ring-green-600/20 shadow-none">Active</Badge>
-                                        ) : (
-                                            <Badge className="bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/20 shadow-none">Inactive</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right space-x-1">
-                                        <Button
-                                            variant="ghost" size="icon"
-                                            title="Edit Curriculum"
-                                            onClick={() => openEditDialog(y)}
-                                            className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost" size="icon"
-                                            title="Clone Curriculum"
-                                            onClick={() => openCloneDialog(y)}
-                                            className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8"
-                                        >
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" title="Delete Curriculum" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="px-6 pt-0 pb-4">
+                                            <div className="rounded-md border border-slate-200 overflow-hidden">
+                                                <Table>
+                                                    <TableHeader className="bg-slate-50/50">
+                                                        <TableRow className="hover:bg-transparent">
+                                                            <TableHead className="w-[35%] font-medium text-slate-600">Curriculum Name</TableHead>
+                                                            <TableHead className="font-medium text-slate-600">Active Years</TableHead>
+                                                            <TableHead className="font-medium text-slate-600">Major / Track</TableHead>
+                                                            <TableHead className="font-medium text-slate-600">Status</TableHead>
+                                                            <TableHead className="text-right font-medium text-slate-600">Actions</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {facultyList.map((y) => (
+                                                            <TableRow key={y.id} className="hover:bg-slate-50/50 transition-colors">
+                                                                <TableCell>
+                                                                    <div className="font-medium text-slate-900">{y.name}</div>
+                                                                    {y.baseTemplateId && (
+                                                                        <Badge variant="outline" className="mt-1 text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200">
+                                                                            Uses Inherited Template
+                                                                        </Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {y.startYear ? (
+                                                                        <Badge variant="secondary" className="font-mono bg-slate-100 text-slate-700 hover:bg-slate-200 border-none">
+                                                                            {y.startYear} {y.endYear ? `- ${y.endYear}` : '- Present'}
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <span className="text-slate-400 text-sm italic">Not specified</span>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <div className="text-sm">
+                                                                        {y.major && <div className="text-slate-700">Major: {y.major}</div>}
+                                                                        {y.track && <div className="text-slate-500 mt-0.5 text-xs">Track: {y.track}</div>}
+                                                                        {!y.major && !y.track && <span className="text-slate-300">-</span>}
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {y.isActive ? (
+                                                                        <Badge className="bg-green-50 text-green-700 hover:bg-green-100 ring-1 ring-inset ring-green-600/20 shadow-none">Active</Badge>
+                                                                    ) : (
+                                                                        <Badge className="bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/20 shadow-none">Inactive</Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="text-right space-x-1">
+                                                                    <Button variant="ghost" size="icon" title="Edit Curriculum" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" title="Clone Curriculum" onClick={() => openCloneDialog(y)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8">
+                                                                        <Copy className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" title="Delete Curriculum" className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        )}
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );

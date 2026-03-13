@@ -33,6 +33,8 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        const baseTemplateId = body.baseTemplateId || null;
+
         const curriculum = await prisma.curriculumYear.create({
             data: {
                 startYear: body.startYear ? Number(body.startYear) : null,
@@ -42,9 +44,55 @@ export async function POST(request: Request) {
                 department: body.department || null,
                 major: body.major || null,
                 track: body.track || null,
-                baseTemplateId: body.baseTemplateId || null,
+                isTemplate: body.isTemplate || false,
+                baseTemplateId: baseTemplateId,
             } as any, // Bypass TS Error due to Prisma client mis-sync
         });
+
+        // Clone base template categories if specified
+        if (baseTemplateId) {
+            const baseCategories = await prisma.curriculumCategory.findMany({
+                where: { curriculumYearId: baseTemplateId },
+                orderBy: { sortOrder: 'asc' },
+            });
+
+            if (baseCategories.length > 0) {
+                // We must map old ID -> new ID to maintain correct parent-child relationships
+                const idMap = new Map<string, string>();
+
+                // First pass: Filter for root categories and recursively create them
+                const createCategoryRecursive = async (oldCategory: any, newParentId: string | null = null) => {
+                    const newCat = await prisma.curriculumCategory.create({
+                        data: {
+                            name: oldCategory.name,
+                            requiredCredits: oldCategory.requiredCredits,
+                            minCredits: oldCategory.minCredits,
+                            maxCredits: oldCategory.maxCredits,
+                            isElective: oldCategory.isElective,
+                            sortOrder: oldCategory.sortOrder,
+                            curriculumYearId: curriculum.id,
+                            parentId: newParentId,
+                            inheritedFromCategoryId: oldCategory.id,
+                            spilloverType: oldCategory.spilloverType,
+                        } as any
+                    });
+
+                    idMap.set(oldCategory.id, newCat.id);
+
+                    // Find and create children
+                    const children = baseCategories.filter((c: any) => c.parentId === oldCategory.id);
+                    for (const child of children) {
+                        await createCategoryRecursive(child, newCat.id);
+                    }
+                };
+
+                const rootCategories = baseCategories.filter(c => c.parentId === null);
+                for (const rootCat of rootCategories) {
+                    await createCategoryRecursive(rootCat, null);
+                }
+            }
+        }
+
         return NextResponse.json(curriculum);
     } catch (error) {
         console.error(error);

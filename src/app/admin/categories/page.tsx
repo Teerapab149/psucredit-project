@@ -37,6 +37,8 @@ interface Category {
     maxCredits: number | null;
     isElective: boolean;
     sortOrder: number;
+    inheritedFromCategoryId: string | null;
+    spilloverType: string | null;
     children?: Category[];
 }
 
@@ -45,6 +47,11 @@ interface CurriculumYear {
     startYear: number | null;
     endYear: number | null;
     name: string;
+    isTemplate: boolean;
+    baseTemplateId: string | null;
+    baseTemplate?: {
+        name: string;
+    };
     categories: Category[];
 }
 
@@ -62,6 +69,7 @@ export default function CategoriesPage() {
         isElective: false,
         parentId: null,
         sortOrder: 0,
+        spilloverType: "none",
     };
 
     const [categoryForm, setCategoryForm] = useState<{
@@ -73,6 +81,7 @@ export default function CategoriesPage() {
         isElective: boolean;
         parentId: string | null;
         sortOrder: number;
+        spilloverType: string;
     }>(initialCategoryState);
 
     const fetchYears = useCallback(async () => {
@@ -112,6 +121,7 @@ export default function CategoriesPage() {
             maxCredits: category.maxCredits || 0,
             isElective: category.isElective || false,
             sortOrder: category.sortOrder || 0,
+            spilloverType: category.spilloverType || "none",
             parentId: null, // Will figure out later if user changes it
         });
         
@@ -149,7 +159,11 @@ export default function CategoriesPage() {
         await fetch("/api/admin/categories", {
             method,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...categoryForm, curriculumYearId: selectedYearId }),
+            body: JSON.stringify({ 
+                ...categoryForm, 
+                curriculumYearId: selectedYearId,
+                spilloverType: categoryForm.spilloverType === "none" ? null : categoryForm.spilloverType 
+            }),
         });
 
         handleDialogClose(false);
@@ -173,8 +187,29 @@ export default function CategoriesPage() {
 
     const flatCategoriesList = useMemo(() => {
         if (!selectedYear) return [];
-        return flattenCategories(selectedYear.categories);
+        // Only allow parenting to faculty-owned categories (not inherited ones)
+        const facultyCategories = selectedYear.categories.filter(c => !c.inheritedFromCategoryId);
+        return flattenCategories(facultyCategories);
     }, [selectedYear, flattenCategories]);
+
+    const { mergedCategories, totalCredits, totalInheritedCredits } = useMemo(() => {
+        if (!selectedYear) return { mergedCategories: [], totalCredits: 0, totalInheritedCredits: 0 };
+        
+        const allCategories = selectedYear.categories;
+        
+        const total = allCategories.reduce((acc, cat) => acc + (cat.requiredCredits || 0), 0);
+        const inherited = allCategories
+            .filter(c => c.inheritedFromCategoryId !== null)
+            .reduce((acc, cat) => acc + (cat.requiredCredits || 0), 0);
+        
+        return { 
+            mergedCategories: allCategories, 
+            totalCredits: total, 
+            totalInheritedCredits: inherited 
+        };
+    }, [selectedYear]);
+
+    const [isLinkedTemplateModalOpen, setIsLinkedTemplateModalOpen] = useState(false);
 
     // Recursive component to render the category tree beautifully
     const CategoryNode = ({ category, level = 0 }: { category: Category, level?: number }) => {
@@ -187,10 +222,17 @@ export default function CategoriesPage() {
                         {level > 0 && <ArrowDownRight className="h-4 w-4 text-slate-300" />}
                         {level === 0 && <Layers className="h-5 w-5 text-indigo-500" />}
                         <div>
-                            <span className="font-semibold text-slate-800">{category.name}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-800">{category.name}</span>
+                                {category.inheritedFromCategoryId && (
+                                    <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200">
+                                        Inherited
+                                    </Badge>
+                                )}
+                            </div>
                             {category.isElective && (
-                                <Badge variant="secondary" className="ml-2 text-[10px] bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border-none">
-                                    Elective Group
+                                <Badge variant="secondary" className="ml-2 mt-1 text-[10px] bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border-none">
+                                    Elective Pool {category.spilloverType && `(${category.spilloverType})`}
                                 </Badge>
                             )}
                         </div>
@@ -326,6 +368,25 @@ export default function CategoriesPage() {
                                 />
                             </div>
 
+                            {categoryForm.isElective && (
+                                <div className="space-y-2 pt-2 pb-2">
+                                    <Label className="text-slate-700">Credit Spillover Strategy (Match Engine)</Label>
+                                    <Select
+                                        value={categoryForm.spilloverType}
+                                        onValueChange={(val) => setCategoryForm({ ...categoryForm, spilloverType: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="No Spillover" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">No Spillover (Explicit Match Only)</SelectItem>
+                                            <SelectItem value="MINOR">Minor Subject Pool Spillover</SelectItem>
+                                            <SelectItem value="FREE_ELECTIVE">Free Elective Pool Spillover (Final Bucket)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
                             <div className="pt-4 border-t border-slate-100">
                                 <Button 
                                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" 
@@ -377,10 +438,39 @@ export default function CategoriesPage() {
                         </Select>
                     </div>
 
+                    {selectedYear?.baseTemplateId && (
+                        <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 rounded-md text-indigo-700">
+                                    <Layers className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-semibold text-indigo-900">
+                                        🔗 Linked Master Template
+                                    </h4>
+                                    <p className="text-xs text-indigo-700/80">
+                                        This curriculum inherits GE structures ({totalInheritedCredits} Cr.)
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-xs font-medium text-indigo-600 bg-indigo-100/50 px-2 py-1 rounded">
+                                Inherited nodes are marked below
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-slate-50/50 rounded-xl border border-slate-200 p-4 sm:p-6 min-h-[400px]">
-                        {selectedYear?.categories && selectedYear.categories.length > 0 ? (
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                                <FolderTree className="h-4 w-4 text-slate-400" />
+                                Curriculum Canvas 
+                                <span className="text-xs font-normal text-slate-400 ml-2">Total: {totalCredits} Credits</span>
+                            </h3>
+                        </div>
+
+                        {mergedCategories.length > 0 ? (
                             <div className="space-y-2">
-                                {selectedYear.categories.map((cat) => (
+                                {mergedCategories.map((cat) => (
                                     <CategoryNode key={cat.id} category={cat} />
                                 ))}
                             </div>

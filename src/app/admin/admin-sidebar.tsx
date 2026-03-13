@@ -1,21 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { LayoutDashboard, BookOpen, FolderTree, FileText, Upload, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
 
 const navItems = [
     { name: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
-    { name: "Curriculum Years", href: "/admin/curriculums", icon: BookOpen },
+    { name: "🏛️ GE Master Templates", href: "/admin/curriculums?type=template", icon: BookOpen },
+    { name: "🎓 Faculty Curriculums", href: "/admin/curriculums?type=faculty", icon: BookOpen },
     { name: "Categories Strategy", href: "/admin/categories", icon: FolderTree },
     { name: "Subjects Database", href: "/admin/subjects", icon: FileText },
     { name: "Bulk Import", href: "/admin/import", icon: Upload },
 ];
 
-export function AdminSidebar({ user }: { user: any }) {
+function SidebarNav({ user }: { user: any }) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     return (
         <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-full shadow-sm z-10">
@@ -30,10 +33,20 @@ export function AdminSidebar({ user }: { user: any }) {
             
             <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
                 {navItems.map((item) => {
-                    // Exact match for /admin, prefix match for others
-                    const isActive = item.href === "/admin" 
-                        ? pathname === "/admin" 
-                        : pathname.startsWith(item.href);
+                    // Exact match for /admin, prefix/exact match for others including query params
+                    let isActive = false;
+                    if (item.href === "/admin") {
+                        isActive = pathname === "/admin";
+                    } else if (item.href.includes("?type=")) {
+                        // Extract type from href
+                        const typeMatch = item.href.match(/\?type=(.*)/);
+                        const type = typeMatch ? typeMatch[1] : null;
+                        
+                        const currentType = searchParams.get("type");
+                        isActive = pathname === "/admin/curriculums" && currentType === type;
+                    } else {
+                         isActive = pathname.startsWith(item.href);
+                    }
                     
                     return (
                         <Link 
@@ -72,5 +85,13 @@ export function AdminSidebar({ user }: { user: any }) {
                 </Button>
             </div>
         </aside>
+    );
+}
+
+export function AdminSidebar({ user }: { user: any }) {
+    return (
+        <Suspense fallback={<div className="w-64 bg-white border-r border-slate-200 h-full"></div>}>
+            <SidebarNav user={user} />
+        </Suspense>
     );
 }
