@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LayoutDashboard, BookOpen, FolderTree, FileText, Upload, LogOut } from "lucide-react";
+import { LayoutDashboard, Layers, GraduationCap, FolderTree, Database, RefreshCw, Upload, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
 
 const navItems = [
     { name: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
-    { name: "🏛️ GE Master Templates", href: "/admin/curriculums?type=template", icon: BookOpen },
-    { name: "🎓 Faculty Curriculums", href: "/admin/curriculums?type=faculty", icon: BookOpen },
-    { name: "Categories Strategy", href: "/admin/categories", icon: FolderTree },
-    { name: "Subjects Database", href: "/admin/subjects", icon: FileText },
+    // Core workflow — ordered by the curriculum-building flow
+    { name: "Master Template", href: "/admin/curriculums?type=template", icon: Layers },
+    { name: "Faculty Curriculum", href: "/admin/curriculums?type=faculty", icon: GraduationCap },
+    { name: "Category Strategy", href: "/admin/categories", icon: FolderTree },
+    { name: "Subject Database (The Bank)", href: "/admin/subjects", icon: Database },
+    // Utilities
+    { name: "Subject Equivalency", href: "/admin/equivalency", icon: RefreshCw },
     { name: "Bulk Import", href: "/admin/import", icon: Upload },
 ];
 

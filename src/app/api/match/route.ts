@@ -79,6 +79,10 @@ export async function POST(request: Request) {
             } as MatchResult);
         }
 
+        // Fetch subject equivalencies for mapping
+        const equivalencies = await prisma.subjectEquivalency.findMany();
+        const equivalencyMap = new Map(equivalencies.map((e: { newCode: string; baseCode: string }) => [e.newCode, e.baseCode]));
+
         // Fetch full curriculum tree
         let categories = await prisma.curriculumCategory.findMany({
             where: { curriculumYearId: curriculumYear.id },
@@ -129,9 +133,11 @@ export async function POST(request: Request) {
 
             for (const dbSubject of cat.subjects) {
                 const found = subjects.find(
-                    (s) =>
-                        s.code === dbSubject.code &&
-                        !matchedCodes.has(`${s.code}-${cat.id}`)
+                    (s) => {
+                        const effectiveCode = equivalencyMap.get(s.code) || s.code;
+                        return effectiveCode === dbSubject.code &&
+                        !matchedCodes.has(`${s.code}-${cat.id}`);
+                    }
                 );
                 if (found) {
                     matchedCodes.add(`${found.code}-${cat.id}`);

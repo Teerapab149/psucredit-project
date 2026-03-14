@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, FolderTree, ArrowDownRight, Layers, Pencil, RefreshCw } from "lucide-react";
+import { Plus, FolderTree, ArrowDownRight, Layers, Pencil, RefreshCw, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+import { SubjectBankModal } from "@/components/admin/SubjectBankModal";
 
 interface Category {
     id: string;
@@ -61,6 +62,8 @@ export default function CategoriesPage() {
     const [selectedYearId, setSelectedYearId] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isBankOpen, setIsBankOpen] = useState(false);
+    const [bankCategoryId, setBankCategoryId] = useState<string>("");
 
     const initialCategoryState = {
         name: "",
@@ -283,10 +286,24 @@ export default function CategoriesPage() {
                                 Required: {category.requiredCredits} Cr.
                             </Badge>
                         )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 ml-2"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setBankCategoryId(category.id);
+                                setIsBankOpen(true);
+                            }}
+                            title="Import from Subject Bank"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                        </Button>
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 ml-2"
+                            className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                             onClick={() => openEditDialog(category)}
                         >
                             <Pencil className="h-3.5 w-3.5" />
@@ -529,6 +546,13 @@ export default function CategoriesPage() {
                     </div>
                 </div>
             )}
+
+            <SubjectBankModal
+                isOpen={isBankOpen}
+                onClose={() => setIsBankOpen(false)}
+                categoryId={bankCategoryId}
+                onSuccess={fetchYears}
+            />
         </div>
     );
 }

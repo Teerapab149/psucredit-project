@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Search, FileText, Trash2, Edit, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Search, Database, Trash2, Edit, X, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import {
     AlertDialog,
@@ -24,27 +23,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
     Table,
     TableBody,
@@ -53,525 +31,413 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
-interface Category {
-    id: string;
-    name: string;
-    children?: Category[];
-}
-
-interface CurriculumYear {
-    id: string;
-    name: string;
-    startYear: number | null;
-    endYear: number | null;
-    categories: Category[];
-}
-
-interface Subject {
+interface MasterSubject {
     id: string;
     code: string;
     name: string;
     credits: number;
-    categoryId: string;
-    category?: {
-        name: string;
-        curriculumYear?: {
-            name: string;
-            startYear: number | null;
-        };
-    };
+    subjectGroup: string | null;
+    tags: string[];
 }
 
-export default function SubjectsPage() {
-    const [years, setYears] = useState<CurriculumYear[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
+const emptyForm = {
+    code: "",
+    name: "",
+    credits: 3,
+    subjectGroup: "",
+    tagInput: "",   // raw comma-separated input
+    tags: [] as string[],
+};
+
+export default function SubjectDatabasePage() {
+    const [subjects, setSubjects] = useState<MasterSubject[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterGroup, setFilterGroup] = useState<string>("all");
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [openCategoryDropdown, setOpenCategoryDropdown] = useState(false);
-    const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-    const [preSelectedCategoryId, setPreSelectedCategoryId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Track expanded accordions
-    const [expandedAccordionItems, setExpandedAccordionItems] = useState<string[]>([]);
+    const [form, setForm] = useState(emptyForm);
 
-    const [newSubject, setNewSubject] = useState<{
-        code: string;
-        name: string;
-        credits: number;
-        categoryId: string;
-    }>({
-        code: "",
-        name: "",
-        credits: 3,
-        categoryId: "",
-    });
+    // ── Data ──────────────────────────────────────────────────────────────────
 
-    // Reset form when dialog closes or opens for new
-    useEffect(() => {
-        if (!isDialogOpen) {
-            setEditingSubject(null);
-            setPreSelectedCategoryId(null);
-            setNewSubject({ code: "", name: "", credits: 3, categoryId: "" });
-        }
-    }, [isDialogOpen]);
-
-    // Pre-fill when editing
-    useEffect(() => {
-        if (editingSubject) {
-            setNewSubject({
-                code: editingSubject.code,
-                name: editingSubject.name,
-                credits: editingSubject.credits,
-                categoryId: editingSubject.categoryId,
-            });
-        } else if (preSelectedCategoryId) {
-            setNewSubject(prev => ({
-                ...prev,
-                categoryId: preSelectedCategoryId
-            }));
-        }
-    }, [editingSubject, preSelectedCategoryId]);
-
-    const handleQuickAdd = (categoryId: string) => {
-        setPreSelectedCategoryId(categoryId);
-        setEditingSubject(null);
-        setIsDialogOpen(true);
-    };
-
-    const fetchData = useCallback(async () => {
+    const fetchSubjects = useCallback(async () => {
         setLoading(true);
         try {
-            const [yearsRes, subjectsRes] = await Promise.all([
-                fetch("/api/admin/curriculum"),
-                fetch("/api/admin/subjects"),
-            ]);
-
-            if (yearsRes.ok) setYears(await yearsRes.json());
-            if (subjectsRes.ok) setSubjects(await subjectsRes.json());
-        } catch (err) {
-            console.error(err);
+            const res = await fetch("/api/admin/master-subjects");
+            if (res.ok) setSubjects(await res.json());
+        } catch {
+            toast.error("Failed to load subject bank");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+    useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
+
+    // ── Derived lists ─────────────────────────────────────────────────────────
+
+    const groups = useMemo(() => {
+        const seen = new Set<string>();
+        subjects.forEach(s => { if (s.subjectGroup) seen.add(s.subjectGroup); });
+        return Array.from(seen).sort();
+    }, [subjects]);
+
+    const filtered = useMemo(() => {
+        let list = subjects;
+        if (filterGroup !== "all") {
+            list = list.filter(s => (s.subjectGroup ?? "") === (filterGroup === "__none" ? "" : filterGroup));
+        }
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            list = list.filter(s => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+        }
+        return list;
+    }, [subjects, filterGroup, searchQuery]);
+
+    // ── Form helpers ──────────────────────────────────────────────────────────
+
+    const openCreate = () => {
+        setEditingId(null);
+        setForm(emptyForm);
+        setIsDialogOpen(true);
+    };
+
+    const openEdit = (s: MasterSubject) => {
+        setEditingId(s.id);
+        setForm({
+            code: s.code,
+            name: s.name,
+            credits: s.credits,
+            subjectGroup: s.subjectGroup ?? "",
+            tagInput: s.tags.join(", "),
+            tags: s.tags,
+        });
+        setIsDialogOpen(true);
+    };
+
+    const closeDialog = () => {
+        setIsDialogOpen(false);
+        setEditingId(null);
+    };
+
+    // Parse tags from tagInput on save
+    const parseTags = (raw: string): string[] =>
+        raw.split(",").map(t => t.trim()).filter(Boolean);
 
     const saveSubject = async () => {
-        if (!newSubject.categoryId) return;
-
+        if (!form.code.trim() || !form.name.trim()) return;
+        setIsSaving(true);
         try {
-            const url = editingSubject
-                ? `/api/admin/subjects/${editingSubject.id}`
-                : "/api/admin/subjects";
-            const method = editingSubject ? "PATCH" : "POST";
+            const payload = {
+                code: form.code.trim().toUpperCase(),
+                name: form.name.trim(),
+                credits: Number(form.credits),
+                subjectGroup: form.subjectGroup.trim() || null,
+                tags: parseTags(form.tagInput),
+            };
+
+            const url = editingId
+                ? `/api/admin/master-subjects/${editingId}`
+                : "/api/admin/master-subjects";
+            const method = editingId ? "PUT" : "POST";
 
             const res = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newSubject),
+                body: JSON.stringify(payload),
             });
 
             if (res.ok) {
-                toast.success(editingSubject ? "Subject updated" : "Subject created");
-                setIsDialogOpen(false);
-                fetchData();
+                toast.success(editingId ? "Subject updated" : "Subject added to bank");
+                closeDialog();
+                fetchSubjects();
             } else {
                 const data = await res.json();
-                toast.error(data.error || "Failed to save subject");
+                toast.error(data.error || "Failed to save");
             }
-        } catch (err) {
-            toast.error("An error occurred while saving");
+        } catch {
+            toast.error("An error occurred");
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const deleteSubject = async (id: string) => {
         try {
-            const res = await fetch(`/api/admin/subjects/${id}`, {
-                method: "DELETE",
-            });
-
+            const res = await fetch(`/api/admin/master-subjects/${id}`, { method: "DELETE" });
             if (res.ok) {
-                toast.success("Subject deleted");
-                fetchData();
+                toast.success("Subject removed from bank");
+                fetchSubjects();
             } else {
-                toast.error("Failed to delete subject");
+                toast.error("Failed to delete");
             }
-        } catch (err) {
-            toast.error("An error occurred while deleting");
+        } catch {
+            toast.error("An error occurred");
         } finally {
             setDeleteId(null);
         }
     };
 
-    // Flatten logic for the category dropdown
-    const flattenCategories = useCallback((cats: Category[], prefix = ""): { id: string; label: string }[] => {
-        let result: { id: string; label: string }[] = [];
-        cats.forEach((c) => {
-            const currentLabel = prefix ? `${prefix} / ${c.name}` : c.name;
-            result.push({ id: c.id, label: currentLabel });
-            if (c.children && c.children.length > 0) {
-                result = result.concat(flattenCategories(c.children, currentLabel));
-            }
-        });
-        return result;
-    }, []);
-
-    const allCategoriesFlat = useMemo(() => {
-        let all: { id: string; label: string, yearName: string }[] = [];
-        years.forEach(year => {
-            const yearLabel = `${year.name} ${year.startYear ? `(${year.startYear})` : ''}`;
-            const flatCats = flattenCategories(year.categories);
-            all = all.concat(flatCats.map(c => ({ ...c, yearName: yearLabel })));
-        });
-        return all;
-    }, [years, flattenCategories]);
-
-    const filteredSubjects = useMemo(() => {
-        if (!searchQuery) return subjects;
-        const q = searchQuery.toLowerCase();
-        return subjects.filter(s =>
-            s.code.toLowerCase().includes(q) ||
-            s.name.toLowerCase().includes(q)
-        );
-    }, [subjects, searchQuery]);
-
-    const groupedSubjects = useMemo(() => {
-        const groups: Record<string, { category: any, subjects: Subject[] }> = {};
-
-        filteredSubjects.forEach(s => {
-            const catId = s.categoryId || "unassigned";
-            if (!groups[catId]) {
-                groups[catId] = {
-                    category: s.category,
-                    subjects: []
-                };
-            }
-            groups[catId].subjects.push(s);
-        });
-
-        const sortedGroups = Object.entries(groups).map(([id, group]) => ({
-            id,
-            ...group
-        })).sort((a, b) => {
-            const yearA = a.category?.curriculumYear?.name || "";
-            const yearB = b.category?.curriculumYear?.name || "";
-            if (yearA !== yearB) return yearA.localeCompare(yearB);
-            const startA = a.category?.curriculumYear?.startYear || 0;
-            const startB = b.category?.curriculumYear?.startYear || 0;
-            if (startA !== startB) return startB - startA;
-            return (a.category?.name || "").localeCompare(b.category?.name || "");
-        });
-
-        return sortedGroups;
-    }, [filteredSubjects]);
-
-    // Auto-expand accordions when searching
-    useEffect(() => {
-        if (searchQuery.trim() !== "") {
-            setExpandedAccordionItems(groupedSubjects.map(g => g.id));
-        } else {
-            setExpandedAccordionItems([]);
-        }
-    }, [searchQuery, groupedSubjects]);
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Subjects Database</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <Database className="h-6 w-6 text-slate-400" />
+                        Subject Database
+                    </h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Manage individual courses and assign them to curriculum categories.
+                        The global master bank of all subjects. Import from here into any curriculum category.
                     </p>
                 </div>
-
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                            onClick={() => {
-                                setEditingSubject(null);
-                                setPreSelectedCategoryId(null);
-                                setIsDialogOpen(true);
-                            }}
-                        >
-                            <Plus className="mr-2 h-4 w-4" /> Add Subject
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader className="mb-4">
-                            <DialogTitle className="text-xl">
-                                {editingSubject ? "Edit Subject" : "Add New Subject"}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {editingSubject
-                                    ? "Update the details of this course entry."
-                                    : "Create a manual entry for a single course. Typically used for corrections."
-                                }
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-5">
-                            <div className="grid grid-cols-4 gap-4">
-                                <div className="col-span-1 space-y-2">
-                                    <Label className="text-slate-700">Code</Label>
-                                    <Input
-                                        placeholder="315-101"
-                                        value={newSubject.code}
-                                        onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
-                                        className="font-mono text-sm uppercase"
-                                    />
-                                </div>
-                                <div className="col-span-2 space-y-2">
-                                    <Label className="text-slate-700">Name</Label>
-                                    <Input
-                                        placeholder="Business Programming"
-                                        value={newSubject.name}
-                                        onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                                    />
-                                </div>
-                                <div className="col-span-1 space-y-2">
-                                    <Label className="text-slate-700">Credits</Label>
-                                    <Input
-                                        type="number"
-                                        value={newSubject.credits}
-                                        onChange={(e) => setNewSubject({ ...newSubject, credits: parseInt(e.target.value) || 0 })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-slate-700">Assign to Category</Label>
-                                <Popover open={openCategoryDropdown} onOpenChange={setOpenCategoryDropdown} modal={true}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openCategoryDropdown}
-                                            className="w-full justify-between font-normal bg-white h-auto p-3"
-                                        >
-                                            {newSubject.categoryId && allCategoriesFlat.length > 0 ? (
-                                                <div className="flex flex-col items-start gap-1 text-left">
-                                                    <span className="font-medium text-slate-800 break-words whitespace-normal leading-tight">
-                                                        {allCategoriesFlat.find((cat) => cat.id === newSubject.categoryId)?.label}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                        {allCategoriesFlat.find((cat) => cat.id === newSubject.categoryId)?.yearName}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-500">Select a category...</span>
-                                            )}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[450px] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Search category by name or year..." />
-                                            <CommandList className="max-h-[300px] overflow-y-auto">
-                                                <CommandEmpty>No category found matching your search.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {allCategoriesFlat.map((cat) => (
-                                                        <CommandItem
-                                                            key={cat.id}
-                                                            value={`${cat.yearName} ${cat.label}`}
-                                                            onSelect={() => {
-                                                                setNewSubject({
-                                                                    ...newSubject,
-                                                                    categoryId: cat.id === newSubject.categoryId ? "" : cat.id
-                                                                });
-                                                                setOpenCategoryDropdown(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4 shrink-0 mt-0.5",
-                                                                    newSubject.categoryId === cat.id ? "opacity-100 text-emerald-600" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            <div className="flex flex-col items-start gap-1">
-                                                                <span className="font-medium break-words leading-tight">{cat.label}</span>
-                                                                <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                                    {cat.yearName}
-                                                                </span>
-                                                            </div>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                <Button
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    onClick={saveSubject}
-                                    disabled={!newSubject.code || !newSubject.name || !newSubject.categoryId}
-                                >
-                                    {editingSubject ? "Update Course" : "Save Course"}
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    onClick={openCreate}
+                >
+                    <Plus className="mr-2 h-4 w-4" /> Add to Bank
+                </Button>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between gap-4">
-                    <div className="relative w-full sm:max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Filter by subject code or name..."
-                            className="pl-9 bg-white border-slate-200"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+            {/* Table card */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                {/* Toolbar */}
+                <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                    <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                        <div className="relative w-full sm:max-w-sm">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Search by code or name..."
+                                className="pl-9 bg-white border-slate-200"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <Select value={filterGroup} onValueChange={setFilterGroup}>
+                            <SelectTrigger className="w-full sm:w-[200px] bg-white border-slate-200">
+                                <SelectValue placeholder="All Groups" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Groups</SelectItem>
+                                {groups.map(g => (
+                                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                                ))}
+                                <SelectItem value="__none">(No Group)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <Badge variant="outline" className="bg-white px-3 py-1 font-normal text-slate-600 self-start sm:self-center">
-                        Total Records: <strong className="ml-1 text-slate-900">{filteredSubjects.length}</strong>
+                    <Badge variant="outline" className="bg-white px-3 py-1 font-normal text-slate-600 shrink-0">
+                        {filtered.length} of <strong className="mx-1 text-slate-900">{subjects.length}</strong> subjects
                     </Badge>
                 </div>
 
-                <div className="flex-1">
-                    {loading ? (
-                        <div className="flex h-64 items-center justify-center">
-                            <div className="flex flex-col items-center gap-2 text-slate-400">
-                                <div className="h-6 w-6 rounded-full border-2 border-slate-200 border-t-emerald-500 animate-spin" />
-                                <span className="text-sm">Fetching database...</span>
-                            </div>
+                {/* Table */}
+                {loading ? (
+                    <div className="flex h-64 items-center justify-center">
+                        <div className="flex flex-col items-center gap-2 text-slate-400">
+                            <div className="h-6 w-6 rounded-full border-2 border-slate-200 border-t-emerald-500 animate-spin" />
+                            <span className="text-sm">Loading bank...</span>
                         </div>
-                    ) : filteredSubjects.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-12 text-center h-64">
-                            <FileText className="h-10 w-10 text-slate-300 mb-3" />
-                            <h3 className="text-slate-900 font-medium">No results found</h3>
-                            <p className="text-slate-500 text-sm mt-1">
-                                {searchQuery ? "Try adjusting your search filters." : "Start by importing subjects or adding them manually."}
-                            </p>
-                        </div>
-                    ) : (
-                        <Accordion
-                            type="multiple"
-                            className="w-full"
-                            value={expandedAccordionItems}
-                            onValueChange={setExpandedAccordionItems}
-                        >
-                            {groupedSubjects.map((group) => (
-                                <AccordionItem key={group.id} value={group.id} className="border-b-0 px-4">
-                                    <div className="relative flex items-center w-full group">
-                                        <AccordionTrigger className="w-full hover:no-underline py-4">
-                                            <div className="flex flex-1 items-center text-left">
-                                                <div className="space-y-1 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                                                        <h3 className="text-base font-bold text-slate-800">
-                                                            {group.category?.name || "Unassigned"}
-                                                        </h3>
-                                                    </div>
-                                                    {group.category?.curriculumYear && (
-                                                        <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 ml-3.5">
-                                                            <span className="uppercase tracking-wide opacity-70">Curriculum:</span>
-                                                            <span className="text-slate-500">
-                                                                {group.category.curriculumYear.name}
-                                                                {group.category.curriculumYear.startYear && ` (${group.category.curriculumYear.startYear})`}
-                                                            </span>
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-3 ml-auto mr-4">
-                                                    {/* Custom Add Button Action Area */}
-                                                    <div
-                                                        className="flex items-center justify-center h-8 w-8 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            handleQuickAdd(group.id);
-                                                        }}
-                                                        title="Add Subject to this Category"
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                    </div>
-                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-normal transition-colors group-hover:bg-slate-200">
-                                                        {group.subjects.length} Subjects
-                                                    </Badge>
-                                                </div>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-16 text-center">
+                        <Database className="h-10 w-10 text-slate-200 mb-3" />
+                        <h3 className="text-slate-700 font-semibold">Bank is empty</h3>
+                        <p className="text-slate-400 text-sm mt-1">
+                            {searchQuery || filterGroup !== "all"
+                                ? "No subjects match your filters."
+                                : "Click 'Add to Bank' to populate the global subject catalog."}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableHead className="h-10 pl-6 w-[130px] text-xs font-semibold uppercase tracking-wider text-slate-500">Code</TableHead>
+                                    <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-slate-500">Name</TableHead>
+                                    <TableHead className="h-10 w-[160px] text-xs font-semibold uppercase tracking-wider text-slate-500">Group</TableHead>
+                                    <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-slate-500">Tags</TableHead>
+                                    <TableHead className="h-10 w-[80px] text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Cr.</TableHead>
+                                    <TableHead className="h-10 w-[90px] text-right pr-6 text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filtered.map((s) => (
+                                    <TableRow key={s.id} className="hover:bg-slate-50/70 transition-colors border-slate-100">
+                                        <TableCell className="pl-6 py-3 font-mono text-[12px] font-bold text-slate-600">
+                                            {s.code}
+                                        </TableCell>
+                                        <TableCell className="py-3 text-[13px] font-medium text-slate-800">
+                                            {s.name}
+                                        </TableCell>
+                                        <TableCell className="py-3">
+                                            {s.subjectGroup ? (
+                                                <Badge variant="outline" className="text-[10px] font-normal border-indigo-100 bg-indigo-50/40 text-indigo-600">
+                                                    {s.subjectGroup}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-slate-300 text-[11px]">—</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="py-3">
+                                            <div className="flex flex-wrap gap-1">
+                                                {s.tags.length > 0 ? s.tags.map(tag => (
+                                                    <span key={tag} className="inline-flex items-center gap-0.5 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-sm">
+                                                        <Tag className="h-2.5 w-2.5" />{tag}
+                                                    </span>
+                                                )) : (
+                                                    <span className="text-slate-300 text-[11px]">—</span>
+                                                )}
                                             </div>
-                                        </AccordionTrigger>
-                                    </div>
-                                    <AccordionContent className="pb-6">
-                                        <div className="overflow-x-auto rounded-lg border border-slate-100 bg-slate-50/20">
-                                            <Table>
-                                                <TableHeader className="bg-slate-50/50">
-                                                    <TableRow className="hover:bg-transparent border-slate-100">
-                                                        <TableHead className="w-[120px] h-9 text-xs font-semibold text-slate-500 pl-4 uppercase tracking-wider">Course Code</TableHead>
-                                                        <TableHead className="h-9 text-xs font-semibold text-slate-500 uppercase tracking-wider">Course Name</TableHead>
-                                                        <TableHead className="w-[80px] h-9 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Credits</TableHead>
-                                                        <TableHead className="w-[100px] h-9 text-right text-xs font-semibold text-slate-500 pr-4 uppercase tracking-wider">Actions</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {group.subjects.map((subject) => (
-                                                        <TableRow key={subject.id} className="hover:bg-white transition-colors border-slate-50">
-                                                            <TableCell className="py-2.5 font-mono text-[12px] font-bold text-slate-600 pl-4">
-                                                                {subject.code}
-                                                            </TableCell>
-                                                            <TableCell className="py-2.5 font-medium text-slate-900 text-[13px]">
-                                                                {subject.name}
-                                                            </TableCell>
-                                                            <TableCell className="py-2.5 text-center">
-                                                                <span className="text-[12px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-sm">
-                                                                    {subject.credits}
-                                                                </span>
-                                                            </TableCell>
-                                                            <TableCell className="py-2.5 text-right space-x-1 pr-4">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8"
-                                                                    onClick={() => {
-                                                                        setEditingSubject(subject);
-                                                                        setIsDialogOpen(true);
-                                                                    }}
-                                                                >
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8"
-                                                                    onClick={() => setDeleteId(subject.id)}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            ))}
-                        </Accordion>
-                    )}
-                </div>
+                                        </TableCell>
+                                        <TableCell className="py-3 text-center">
+                                            <span className="font-mono text-[12px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-sm">
+                                                {s.credits}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="py-3 pr-6 text-right space-x-1">
+                                            <Button
+                                                variant="ghost" size="icon"
+                                                className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                                onClick={() => openEdit(s)}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost" size="icon"
+                                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => setDeleteId(s.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
             </div>
 
-            {/* Deletion Confirmation */}
+            {/* ── Create / Edit Dialog ────────────────────────────────────────── */}
+            <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader className="mb-2">
+                        <DialogTitle className="text-xl">
+                            {editingId ? "Edit Subject" : "Add Subject to Bank"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingId
+                                ? "Update the master record for this subject."
+                                : "Create a new entry in the global subject catalog."}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {/* Code + Credits */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-slate-700">Subject Code <span className="text-red-500">*</span></Label>
+                                <Input
+                                    placeholder="e.g. 315-202"
+                                    value={form.code}
+                                    onChange={(e) => setForm({ ...form, code: e.target.value })}
+                                    className="font-mono text-sm uppercase"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-slate-700">Credits <span className="text-red-500">*</span></Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={form.credits}
+                                    onChange={(e) => setForm({ ...form, credits: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Name */}
+                        <div className="space-y-1.5">
+                            <Label className="text-slate-700">Subject Name <span className="text-red-500">*</span></Label>
+                            <Input
+                                placeholder="e.g. Business Programming"
+                                value={form.name}
+                                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Subject Group */}
+                        <div className="space-y-1.5">
+                            <Label className="text-slate-700">Subject Group</Label>
+                            <Input
+                                placeholder="e.g. GE1 or กลุ่มสาระที่ 1"
+                                value={form.subjectGroup}
+                                onChange={(e) => setForm({ ...form, subjectGroup: e.target.value })}
+                            />
+                            <p className="text-[11px] text-slate-400">Used for bulk import filtering in the Bank modal.</p>
+                        </div>
+
+                        {/* Tags */}
+                        <div className="space-y-1.5">
+                            <Label className="text-slate-700 flex items-center gap-1.5">
+                                <Tag className="h-3.5 w-3.5" /> Tags
+                            </Label>
+                            <Input
+                                placeholder="e.g. math, required, elective"
+                                value={form.tagInput}
+                                onChange={(e) => setForm({ ...form, tagInput: e.target.value })}
+                            />
+                            {/* Tag preview */}
+                            {parseTags(form.tagInput).length > 0 && (
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                    {parseTags(form.tagInput).map(t => (
+                                        <span key={t} className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-sm">
+                                            <Tag className="h-2.5 w-2.5" />{t}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            <p className="text-[11px] text-slate-400">Comma-separated tags for filtering.</p>
+                        </div>
+                    </div>
+
+                    <div className="pt-5 border-t border-slate-100 flex justify-end gap-3 mt-4">
+                        <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[110px]"
+                            onClick={saveSubject}
+                            disabled={!form.code.trim() || !form.name.trim() || isSaving}
+                        >
+                            {isSaving ? "Saving..." : editingId ? "Update Subject" : "Add to Bank"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Delete Confirmation ─────────────────────────────────────────── */}
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>Remove from Bank?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this subject
-                            from the curriculum database.
+                            This will permanently remove this subject from the global master bank.
+                            Subjects already imported into curricula will not be affected.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -580,7 +446,7 @@ export default function SubjectsPage() {
                             onClick={() => deleteId && deleteSubject(deleteId)}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Delete Subject
+                            Remove
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

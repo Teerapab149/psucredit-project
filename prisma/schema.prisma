@@ -73,8 +73,9 @@ model Subject {
   code         String
   name         String
   credits      Int
-  category     CurriculumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  categoryId   String
+  categoryId   String?
+  category     CurriculumCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subjectGroup String? // e.g., 'GE1', 'Core'
   userSubjects UserSubject[]
   planSubjects PlanSubject[] // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
   createdAt    DateTime           @default(now())
@@ -139,4 +140,24 @@ enum SubjectStatus {
 enum SpilloverType {
   MINOR
   FREE_ELECTIVE
+}
+
+model SubjectEquivalency {
+  id        String   @id @default(cuid())
+  newCode   String   @unique // e.g., "315-202G2B"
+  baseCode  String   // e.g., "315-202"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Global Subject Bank — master catalog independent of any curriculum
+model MasterSubject {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  credits      Int
+  subjectGroup String?  // e.g., 'GE1', 'Core', 'Free Elective'
+  tags         String[] // e.g., ['math', 'required']
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

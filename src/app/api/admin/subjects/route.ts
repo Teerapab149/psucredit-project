@@ -31,6 +31,15 @@ export async function POST(request: Request) {
                 name: body.name,
                 credits: Number(body.credits),
                 categoryId: body.categoryId,
+                subjectGroup: body.subjectGroup,
+            },
+            select: {
+                code: true,
+                name: true,
+                credits: true,
+                subjectGroup: true,
+                id: true, // Include id as it's usually needed
+                categoryId: true, // Include categoryId if it's part of the response
             },
         });
         return NextResponse.json(subject);

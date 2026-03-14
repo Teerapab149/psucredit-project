@@ -16,6 +16,7 @@ export async function PATCH(
                 name: body.name,
                 credits: Number(body.credits),
                 categoryId: body.categoryId,
+                subjectGroup: body.subjectGroup,
             },
         });
 
