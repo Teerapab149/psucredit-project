@@ -148,7 +148,7 @@ export default function SubjectsPage() {
                 fetch("/api/admin/curriculum"),
                 fetch("/api/admin/subjects"),
             ]);
-            
+
             if (yearsRes.ok) setYears(await yearsRes.json());
             if (subjectsRes.ok) setSubjects(await subjectsRes.json());
         } catch (err) {
@@ -164,9 +164,9 @@ export default function SubjectsPage() {
 
     const saveSubject = async () => {
         if (!newSubject.categoryId) return;
-        
+
         try {
-            const url = editingSubject 
+            const url = editingSubject
                 ? `/api/admin/subjects/${editingSubject.id}`
                 : "/api/admin/subjects";
             const method = editingSubject ? "PATCH" : "POST";
@@ -235,15 +235,15 @@ export default function SubjectsPage() {
     const filteredSubjects = useMemo(() => {
         if (!searchQuery) return subjects;
         const q = searchQuery.toLowerCase();
-        return subjects.filter(s => 
-            s.code.toLowerCase().includes(q) || 
+        return subjects.filter(s =>
+            s.code.toLowerCase().includes(q) ||
             s.name.toLowerCase().includes(q)
         );
     }, [subjects, searchQuery]);
 
     const groupedSubjects = useMemo(() => {
         const groups: Record<string, { category: any, subjects: Subject[] }> = {};
-        
+
         filteredSubjects.forEach(s => {
             const catId = s.categoryId || "unassigned";
             if (!groups[catId]) {
@@ -254,7 +254,7 @@ export default function SubjectsPage() {
             }
             groups[catId].subjects.push(s);
         });
-        
+
         const sortedGroups = Object.entries(groups).map(([id, group]) => ({
             id,
             ...group
@@ -276,7 +276,6 @@ export default function SubjectsPage() {
         if (searchQuery.trim() !== "") {
             setExpandedAccordionItems(groupedSubjects.map(g => g.id));
         } else {
-            // Optional: reset or keep some expanded? Let's keep empty for fresh state
             setExpandedAccordionItems([]);
         }
     }, [searchQuery, groupedSubjects]);
@@ -290,10 +289,10 @@ export default function SubjectsPage() {
                         Manage individual courses and assign them to curriculum categories.
                     </p>
                 </div>
-                
+
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button 
+                        <Button
                             className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                             onClick={() => {
                                 setEditingSubject(null);
@@ -310,13 +309,13 @@ export default function SubjectsPage() {
                                 {editingSubject ? "Edit Subject" : "Add New Subject"}
                             </DialogTitle>
                             <DialogDescription>
-                                {editingSubject 
+                                {editingSubject
                                     ? "Update the details of this course entry."
                                     : "Create a manual entry for a single course. Typically used for corrections."
                                 }
                             </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="space-y-5">
                             <div className="grid grid-cols-4 gap-4">
                                 <div className="col-span-1 space-y-2">
@@ -345,7 +344,7 @@ export default function SubjectsPage() {
                                     />
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <Label className="text-slate-700">Assign to Category</Label>
                                 <Popover open={openCategoryDropdown} onOpenChange={setOpenCategoryDropdown} modal={true}>
@@ -382,9 +381,9 @@ export default function SubjectsPage() {
                                                             key={cat.id}
                                                             value={`${cat.yearName} ${cat.label}`}
                                                             onSelect={() => {
-                                                                 setNewSubject({ 
-                                                                    ...newSubject, 
-                                                                    categoryId: cat.id === newSubject.categoryId ? "" : cat.id 
+                                                                setNewSubject({
+                                                                    ...newSubject,
+                                                                    categoryId: cat.id === newSubject.categoryId ? "" : cat.id
                                                                 });
                                                                 setOpenCategoryDropdown(false);
                                                             }}
@@ -409,12 +408,12 @@ export default function SubjectsPage() {
                                     </PopoverContent>
                                 </Popover>
                             </div>
- 
+
                             <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                <Button 
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white" 
-                                    onClick={saveSubject} 
+                                <Button
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={saveSubject}
                                     disabled={!newSubject.code || !newSubject.name || !newSubject.categoryId}
                                 >
                                     {editingSubject ? "Update Course" : "Save Course"}
@@ -424,13 +423,13 @@ export default function SubjectsPage() {
                     </DialogContent>
                 </Dialog>
             </div>
- 
+
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                 <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between gap-4">
                     <div className="relative w-full sm:max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input 
-                            placeholder="Filter by subject code or name..." 
+                        <Input
+                            placeholder="Filter by subject code or name..."
                             className="pl-9 bg-white border-slate-200"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -440,7 +439,7 @@ export default function SubjectsPage() {
                         Total Records: <strong className="ml-1 text-slate-900">{filteredSubjects.length}</strong>
                     </Badge>
                 </div>
- 
+
                 <div className="flex-1">
                     {loading ? (
                         <div className="flex h-64 items-center justify-center">
@@ -458,51 +457,54 @@ export default function SubjectsPage() {
                             </p>
                         </div>
                     ) : (
-                        <Accordion 
-                            type="multiple" 
+                        <Accordion
+                            type="multiple"
                             className="w-full"
                             value={expandedAccordionItems}
                             onValueChange={setExpandedAccordionItems}
                         >
                             {groupedSubjects.map((group) => (
                                 <AccordionItem key={group.id} value={group.id} className="border-b-0 px-4">
-                                    <AccordionTrigger className="hover:no-underline py-4 group">
-                                        <div className="flex items-center justify-between w-full pr-4 text-left">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                                                    <h3 className="text-base font-bold text-slate-800">
-                                                        {group.category?.name || "Unassigned"}
-                                                    </h3>
+                                    <div className="relative flex items-center w-full group">
+                                        <AccordionTrigger className="w-full hover:no-underline py-4">
+                                            <div className="flex flex-1 items-center text-left">
+                                                <div className="space-y-1 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                                                        <h3 className="text-base font-bold text-slate-800">
+                                                            {group.category?.name || "Unassigned"}
+                                                        </h3>
+                                                    </div>
+                                                    {group.category?.curriculumYear && (
+                                                        <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 ml-3.5">
+                                                            <span className="uppercase tracking-wide opacity-70">Curriculum:</span>
+                                                            <span className="text-slate-500">
+                                                                {group.category.curriculumYear.name}
+                                                                {group.category.curriculumYear.startYear && ` (${group.category.curriculumYear.startYear})`}
+                                                            </span>
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                {group.category?.curriculumYear && (
-                                                    <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 ml-3.5">
-                                                        <span className="uppercase tracking-wide opacity-70">Curriculum:</span>
-                                                        <span className="text-slate-500">
-                                                            {group.category.curriculumYear.name} 
-                                                            {group.category.curriculumYear.startYear && ` (${group.category.curriculumYear.startYear})`}
-                                                        </span>
-                                                    </p>
-                                                )}
+                                                <div className="flex items-center gap-3 ml-auto mr-4">
+                                                    {/* Custom Add Button Action Area */}
+                                                    <div
+                                                        className="flex items-center justify-center h-8 w-8 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleQuickAdd(group.id);
+                                                        }}
+                                                        title="Add Subject to this Category"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </div>
+                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-normal transition-colors group-hover:bg-slate-200">
+                                                        {group.subjects.length} Subjects
+                                                    </Badge>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 ml-auto shrink-0">
-                                                <Button 
-                                                    size="icon" 
-                                                    variant="ghost" 
-                                                    className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleQuickAdd(group.id);
-                                                    }}
-                                                >
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-normal transition-colors group-hover:bg-slate-200">
-                                                    {group.subjects.length} Subjects
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
+                                        </AccordionTrigger>
+                                    </div>
                                     <AccordionContent className="pb-6">
                                         <div className="overflow-x-auto rounded-lg border border-slate-100 bg-slate-50/20">
                                             <Table>
@@ -529,9 +531,9 @@ export default function SubjectsPage() {
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell className="py-2.5 text-right space-x-1 pr-4">
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
                                                                     className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8"
                                                                     onClick={() => {
                                                                         setEditingSubject(subject);
@@ -540,9 +542,9 @@ export default function SubjectsPage() {
                                                                 >
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
                                                                     className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8"
                                                                     onClick={() => setDeleteId(subject.id)}
                                                                 >
@@ -574,7 +576,7 @@ export default function SubjectsPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={() => deleteId && deleteSubject(deleteId)}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
