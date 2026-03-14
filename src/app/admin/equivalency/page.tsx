@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, RefreshCw, ArrowRight } from "lucide-react";
+import { Plus, Trash2, RefreshCw, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -237,7 +237,7 @@ export default function EquivalencyPage() {
                                 <TableRow key={eq.id}>
                                     <TableCell className="font-mono font-bold text-slate-700">{eq.newCode}</TableCell>
                                     <TableCell className="text-center">
-                                        <ArrowRight className="h-4 w-4 text-slate-300 inline" />
+                                        <ArrowLeftRight className="h-4 w-4 text-slate-300 inline" />
                                     </TableCell>
                                     <TableCell className="font-mono font-bold text-emerald-600">{eq.baseCode}</TableCell>
                                     <TableCell className="text-right">

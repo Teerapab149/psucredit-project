@@ -31,33 +31,45 @@ export async function POST(request: Request) {
         }
 
         if (!curriculumYear && studentInfo) {
-            // Find all active curriculums up to the student's admission year
+            // Find all active, non-template curriculums up to the student's admission year
             const matchingCurriculums = await prisma.curriculumYear.findMany({
                 where: {
                     isActive: true,
+                    isTemplate: false,
                     startYear: { lte: studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999 },
                 },
                 orderBy: { startYear: "desc" },
             });
 
+            // Normalise a field value: remove all whitespace and uppercase for
+            // flexible matching regardless of spacing or casing differences.
+            const norm = (v?: string | null) => (v ?? "").replace(/\s+/g, "").toUpperCase();
+
             // Find the best match
             for (const curr of matchingCurriculums) {
-                const facultyMatch = !curr.faculty || curr.faculty === studentInfo.faculty;
-                const majorMatch = !curr.major || curr.major === studentInfo.major;
-                const trackMatch = !curr.track || curr.track === studentInfo.track;
+                const facultyMatch = !curr.faculty || norm(curr.faculty) === norm(studentInfo.faculty);
+                const majorMatch   = !curr.major   || norm(curr.major)   === norm(studentInfo.major);
+                const trackMatch   = !curr.track   || norm(curr.track)   === norm(studentInfo.track);
 
                 if (facultyMatch && majorMatch && trackMatch) {
                     curriculumYear = curr;
                     break;
                 }
             }
+
+            console.log(
+                "[match] auto-select →",
+                "faculty:", studentInfo.faculty,
+                "| major:", studentInfo.major,
+                "| selected:", curriculumYear?.name ?? "none"
+            );
         }
 
-        // Fallback if no specific match
+        // Fallback if no specific match — never pick a master template
         if (!curriculumYear) {
             curriculumYear = await prisma.curriculumYear.findFirst({
-                where: { isActive: true },
-                orderBy: { startYear: "desc" }, // Fixed to startYear instead of year since schema updated
+                where: { isActive: true, isTemplate: false },
+                orderBy: { startYear: "desc" },
             }) as any;
         }
 
@@ -79,9 +91,17 @@ export async function POST(request: Request) {
             } as MatchResult);
         }
 
-        // Fetch subject equivalencies for mapping
+        // Fetch subject equivalencies for mapping.
+        // Sanitize both sides: strip dashes/spaces and uppercase so that
+        // minor formatting differences never cause a missed lookup.
+        const sanitize = (code: string) => code.replace(/[-\s]/g, "").toUpperCase();
         const equivalencies = await prisma.subjectEquivalency.findMany();
-        const equivalencyMap = new Map(equivalencies.map((e: { newCode: string; baseCode: string }) => [e.newCode, e.baseCode]));
+        const equivalencyMap = new Map(
+            equivalencies.map((e: { newCode: string; baseCode: string }) => [
+                sanitize(e.newCode),
+                sanitize(e.baseCode),
+            ])
+        );
 
         // Fetch full curriculum tree
         let categories = await prisma.curriculumCategory.findMany({
@@ -106,13 +126,10 @@ export async function POST(request: Request) {
             }
         }
 
-        // Track which subjects are matched
-        // matchedCodes: "<studentCode>-<catId>" — prevents same student subject
-        //               matching the same category twice
-        // matchedSubjectCodes: the student codes already consumed in Phase 1,
-        //               used to exclude them from Phase 2 spillover
+        // Tracks every student subject code that has been consumed (globally).
+        // A subject is consumed once and cannot match again in any other category
+        // or appear in the Phase 2 spillover list.
         const matchedCodes = new Set<string>();
-        const matchedSubjectCodes = new Set<string>();
 
         // Recursive match function
         function matchCategory(
@@ -137,16 +154,28 @@ export async function POST(request: Request) {
             const missingSubjects = [];
 
             for (const dbSubject of cat.subjects) {
+                const cleanDbCode = dbSubject.code.replace(/[-\s]/g, "").toUpperCase();
                 const found = subjects.find(
                     (s) => {
-                        const effectiveCode = equivalencyMap.get(s.code) || s.code;
-                        return effectiveCode === dbSubject.code &&
-                        !matchedCodes.has(`${s.code}-${cat.id}`);
+                        const cleanUserCode = s.code.replace(/[-\s]/g, "").toUpperCase();
+
+                        // 1. Direct match
+                        const isDirectMatch = cleanUserCode === cleanDbCode;
+                        // 2. User has new code, DB expects base code
+                        const isUserNewDbBase = equivalencyMap.get(cleanUserCode) === cleanDbCode;
+                        // 3. User has base code, DB expects new code
+                        const isUserBaseDbNew = cleanUserCode === equivalencyMap.get(cleanDbCode);
+                        // 4. Sibling match (both are new codes sharing the same base code)
+                        const userBase = equivalencyMap.get(cleanUserCode);
+                        const dbBase   = equivalencyMap.get(cleanDbCode);
+                        const isSiblingMatch = userBase !== undefined && userBase === dbBase;
+
+                        const isMatch = isDirectMatch || isUserNewDbBase || isUserBaseDbNew || isSiblingMatch;
+                        return isMatch && !matchedCodes.has(s.code);
                     }
                 );
                 if (found) {
-                    matchedCodes.add(`${found.code}-${cat.id}`);
-                    matchedSubjectCodes.add(found.code);
+                    matchedCodes.add(found.code);
                     matchedSubjects.push({
                         code: found.code,
                         name: found.name,
@@ -199,9 +228,9 @@ export async function POST(request: Request) {
         const result: CategoryMatch[] = rootCategories.map(matchCategory).filter(Boolean) as CategoryMatch[];
 
         // --- Phase 2: Waterfall Spillover Logic ---
-        // 1. Find all subjects NOT consumed in Phase 1 (exact code match)
+        // Build the unmatched list directly from matchedCodes — no split() hacks needed.
         let currentUnmatchedSubjects = subjects.filter(
-            (s) => !matchedSubjectCodes.has(s.code)
+            (s) => !matchedCodes.has(s.code)
         );
 
         // Calculate credits for a given category (own + children)

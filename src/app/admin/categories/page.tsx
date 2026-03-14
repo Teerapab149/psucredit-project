@@ -2,7 +2,22 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, FolderTree, ArrowDownRight, Layers, Pencil, RefreshCw, Download, ChevronDown, ChevronRight, BookOpen, Trash2 } from "lucide-react";
+import { Plus, FolderTree, ArrowDownRight, Layers, Pencil, RefreshCw, Download, ChevronDown, ChevronRight, BookOpen, Trash2, GripVertical } from "lucide-react";
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    useSortable,
+    arrayMove,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -263,6 +278,24 @@ export default function CategoriesPage() {
         }
     };
 
+    const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
+    const deleteCategory = async (categoryId: string) => {
+        try {
+            const res = await fetch(`/api/admin/categories?id=${categoryId}`, { method: "DELETE" });
+            if (res.ok) {
+                toast.success("Category deleted");
+                fetchYears();
+            } else {
+                toast.error("Failed to delete category");
+            }
+        } catch {
+            toast.error("An error occurred");
+        } finally {
+            setConfirmDelete(null);
+        }
+    };
+
     const deleteSubject = async (subjectId: string) => {
         try {
             const res = await fetch(`/api/admin/subjects/${subjectId}`, { method: "DELETE" });
@@ -278,7 +311,15 @@ export default function CategoriesPage() {
     };
 
     // Recursive component to render the category tree
-    const CategoryNode = ({ category, level = 0 }: { category: Category, level?: number }) => {
+    const CategoryNode = ({
+        category,
+        level = 0,
+        dragHandleProps,
+    }: {
+        category: Category;
+        level?: number;
+        dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
+    }) => {
         const hasChildren = category.children && category.children.length > 0;
         const subjectCount = category.subjects?.length ?? 0;
         const [subjectsOpen, setSubjectsOpen] = useState(false);
@@ -288,6 +329,16 @@ export default function CategoriesPage() {
                 {/* Category header card */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 transition-colors gap-3">
                     <div className="flex items-center gap-3">
+                        {/* Drag handle — shown at every level */}
+                        {dragHandleProps && (
+                            <button
+                                {...dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 touch-none"
+                                title="Drag to reorder"
+                            >
+                                <GripVertical className="h-4 w-4" />
+                            </button>
+                        )}
                         {level > 0 && <ArrowDownRight className="h-4 w-4 text-slate-300" />}
                         {level === 0 && <Layers className="h-5 w-5 text-indigo-500" />}
                         <div>
@@ -353,6 +404,14 @@ export default function CategoriesPage() {
                         >
                             <Pencil className="h-3.5 w-3.5" />
                         </Button>
+                        <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setConfirmDelete({ id: category.id, name: category.name })}
+                            title="Delete category"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                     </div>
                 </div>
 
@@ -414,15 +473,85 @@ export default function CategoriesPage() {
                     </div>
                 )}
 
-                {/* Children */}
+                {/* Children — each sibling group is independently sortable */}
                 {hasChildren && (
                     <div className="mt-2">
-                        {category.children!.map((child) => (
-                            <CategoryNode key={child.id} category={child} level={level + 1} />
-                        ))}
+                        <SortableCategoryList categories={category.children!} level={level + 1} />
                     </div>
                 )}
             </div>
+        );
+    };
+
+    // Sortable wrapper — works at any depth
+    const SortableCategoryRow = ({ category, level = 0 }: { category: Category; level?: number }) => {
+        const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+            useSortable({ id: category.id });
+
+        const style: React.CSSProperties = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+            opacity: isDragging ? 0.5 : 1,
+            position: "relative",
+            zIndex: isDragging ? 10 : undefined,
+        };
+
+        return (
+            <div ref={setNodeRef} style={style}>
+                <CategoryNode
+                    category={category}
+                    level={level}
+                    dragHandleProps={{ ...attributes, ...listeners }}
+                />
+            </div>
+        );
+    };
+
+    // Self-contained sortable list for one sibling group at any depth.
+    // Each level gets its own DndContext so nested drags don't interfere.
+    const SortableCategoryList = ({ categories, level = 0 }: { categories: Category[]; level?: number }) => {
+        const [items, setItems] = useState<Category[]>(categories);
+        const listSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+        // Keep in sync when parent refreshes data
+        useEffect(() => { setItems(categories); }, [categories]);
+
+        const onDragEnd = async (event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over || active.id === over.id) return;
+
+            const oldIndex = items.findIndex((c) => c.id === active.id);
+            const newIndex = items.findIndex((c) => c.id === over.id);
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            const reordered = arrayMove(items, oldIndex, newIndex);
+            setItems(reordered); // optimistic
+
+            const updates = reordered.map((cat, idx) => ({ id: cat.id, sortOrder: idx }));
+            try {
+                const res = await fetch("/api/admin/categories/reorder", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updates),
+                });
+                if (!res.ok) throw new Error();
+                toast.success("Order saved");
+            } catch {
+                toast.error("Failed to save order");
+                setItems(categories); // revert
+            }
+        };
+
+        return (
+            <DndContext sensors={listSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                        {items.map((cat) => (
+                            <SortableCategoryRow key={cat.id} category={cat} level={level} />
+                        ))}
+                    </div>
+                </SortableContext>
+            </DndContext>
         );
     };
 
@@ -635,11 +764,7 @@ export default function CategoriesPage() {
                         </div>
 
                         {mergedCategories.length > 0 ? (
-                            <div className="space-y-2">
-                                {mergedCategories.map((cat) => (
-                                    <CategoryNode key={cat.id} category={cat} />
-                                ))}
-                            </div>
+                            <SortableCategoryList categories={mergedCategories} level={0} />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
                                 <Layers className="h-12 w-12 text-slate-200 mb-3" />
@@ -657,6 +782,49 @@ export default function CategoriesPage() {
                 categoryId={bankCategoryId}
                 onSuccess={fetchYears}
             />
+
+            {/* Delete confirmation modal */}
+            {confirmDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        onClick={() => setConfirmDelete(null)}
+                    />
+                    {/* Panel */}
+                    <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-red-100">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-semibold text-slate-900">Delete Category</h3>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Are you sure you want to delete{" "}
+                                    <span className="font-medium text-slate-700">"{confirmDelete.name}"</span>?
+                                    All subjects inside will also be removed. This cannot be undone.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setConfirmDelete(null)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                size="sm"
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                                onClick={() => deleteCategory(confirmDelete.id)}
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

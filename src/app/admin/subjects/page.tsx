@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Search, Database, Trash2, Edit, Tag, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plus, Search, Database, Trash2, Edit, Tag, AlertTriangle, RefreshCw, Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
 
 interface MasterSubject {
@@ -122,6 +131,16 @@ export default function SubjectDatabasePage() {
         return Array.from(seen).sort();
     }, [subjects]);
 
+    const allTags = useMemo(() => {
+        const seen = new Set<string>();
+        subjects.forEach(s => s.tags.forEach(t => seen.add(t)));
+        return Array.from(seen).sort();
+    }, [subjects]);
+
+    const [groupOpen, setGroupOpen] = useState(false);
+    const [tagOpen, setTagOpen] = useState(false);
+    const [tagSearch, setTagSearch] = useState("");
+
     const filtered = useMemo(() => {
         let list = subjects;
         if (filterGroup !== "all") {
@@ -158,6 +177,9 @@ export default function SubjectDatabasePage() {
     const closeDialog = () => {
         setIsDialogOpen(false);
         setEditingId(null);
+        setGroupOpen(false);
+        setTagOpen(false);
+        setTagSearch("");
     };
 
     // Parse tags from tagInput on save
@@ -173,7 +195,7 @@ export default function SubjectDatabasePage() {
                 name: form.name.trim(),
                 credits: Number(form.credits),
                 subjectGroup: form.subjectGroup.trim() || null,
-                tags: parseTags(form.tagInput),
+                tags: form.tags,
             };
 
             const url = editingId
@@ -439,38 +461,166 @@ export default function SubjectDatabasePage() {
                             />
                         </div>
 
-                        {/* Subject Group */}
+                        {/* Subject Group — creatable combobox */}
                         <div className="space-y-1.5">
                             <Label className="text-slate-700">Subject Group</Label>
-                            <Input
-                                placeholder="e.g. GE1 or กลุ่มสาระที่ 1"
-                                value={form.subjectGroup}
-                                onChange={(e) => setForm({ ...form, subjectGroup: e.target.value })}
-                            />
+                            <Popover open={groupOpen} onOpenChange={setGroupOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={groupOpen}
+                                        className="w-full justify-between font-normal text-slate-700 border-slate-200"
+                                    >
+                                        <span className={form.subjectGroup ? "text-slate-800" : "text-slate-400"}>
+                                            {form.subjectGroup || "Select or create a group…"}
+                                        </span>
+                                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                                            {form.subjectGroup && (
+                                                <X
+                                                    className="h-3.5 w-3.5 text-slate-400 hover:text-slate-700"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setForm({ ...form, subjectGroup: "" });
+                                                    }}
+                                                />
+                                            )}
+                                            <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400" />
+                                        </div>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                    <Command>
+                                        <CommandInput placeholder="Search or type a new group…" />
+                                        <CommandList>
+                                            <CommandEmpty>
+                                                {/* Show "create" option when input is non-empty */}
+                                                <button
+                                                    className="w-full text-left px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        const input = e.currentTarget.closest("[cmdk-root]")?.querySelector("input") as HTMLInputElement | null;
+                                                        const val = input?.value.trim() ?? "";
+                                                        if (val) {
+                                                            setForm({ ...form, subjectGroup: val });
+                                                            setGroupOpen(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    + Create new group
+                                                </button>
+                                            </CommandEmpty>
+                                            <CommandGroup heading="Existing groups">
+                                                {groups.map((g) => (
+                                                    <CommandItem
+                                                        key={g}
+                                                        value={g}
+                                                        onSelect={() => {
+                                                            setForm({ ...form, subjectGroup: g });
+                                                            setGroupOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={`mr-2 h-3.5 w-3.5 ${form.subjectGroup === g ? "opacity-100" : "opacity-0"}`} />
+                                                        {g}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                             <p className="text-[11px] text-slate-400">Used for bulk import filtering in the Bank modal.</p>
                         </div>
 
-                        {/* Tags */}
+                        {/* Tags — multi-select creatable combobox */}
                         <div className="space-y-1.5">
                             <Label className="text-slate-700 flex items-center gap-1.5">
                                 <Tag className="h-3.5 w-3.5" /> Tags
                             </Label>
-                            <Input
-                                placeholder="e.g. math, required, elective"
-                                value={form.tagInput}
-                                onChange={(e) => setForm({ ...form, tagInput: e.target.value })}
-                            />
-                            {/* Tag preview */}
-                            {parseTags(form.tagInput).length > 0 && (
-                                <div className="flex flex-wrap gap-1 pt-1">
-                                    {parseTags(form.tagInput).map(t => (
-                                        <span key={t} className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-sm">
-                                            <Tag className="h-2.5 w-2.5" />{t}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            <p className="text-[11px] text-slate-400">Comma-separated tags for filtering.</p>
+                            <Popover open={tagOpen} onOpenChange={setTagOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={tagOpen}
+                                        className="w-full min-h-9 h-auto justify-start font-normal border-slate-200 flex-wrap gap-1 py-1.5 px-3"
+                                    >
+                                        {form.tags.length > 0 ? (
+                                            <>
+                                                {form.tags.map((t) => (
+                                                    <span
+                                                        key={t}
+                                                        className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded"
+                                                    >
+                                                        {t}
+                                                        <X
+                                                            className="h-2.5 w-2.5 text-slate-400 hover:text-red-500 cursor-pointer"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setForm({ ...form, tags: form.tags.filter((x) => x !== t) });
+                                                            }}
+                                                        />
+                                                    </span>
+                                                ))}
+                                                <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400 ml-auto shrink-0" />
+                                            </>
+                                        ) : (
+                                            <span className="text-slate-400 text-sm flex-1 text-left">Select or type tags…</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                    <Command>
+                                        <CommandInput
+                                            placeholder="Search or create a tag…"
+                                            value={tagSearch}
+                                            onValueChange={setTagSearch}
+                                        />
+                                        <CommandList>
+                                            <CommandEmpty>
+                                                {tagSearch.trim() && (
+                                                    <button
+                                                        className="w-full text-left px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            const val = tagSearch.trim().toLowerCase();
+                                                            if (val && !form.tags.includes(val)) {
+                                                                setForm({ ...form, tags: [...form.tags, val] });
+                                                            }
+                                                            setTagSearch("");
+                                                        }}
+                                                    >
+                                                        + Add "{tagSearch.trim()}"
+                                                    </button>
+                                                )}
+                                            </CommandEmpty>
+                                            <CommandGroup heading="Available tags">
+                                                {allTags
+                                                    .filter((t) => t.toLowerCase().includes(tagSearch.toLowerCase()))
+                                                    .map((t) => (
+                                                        <CommandItem
+                                                            key={t}
+                                                            value={t}
+                                                            onSelect={() => {
+                                                                setForm({
+                                                                    ...form,
+                                                                    tags: form.tags.includes(t)
+                                                                        ? form.tags.filter((x) => x !== t)
+                                                                        : [...form.tags, t],
+                                                                });
+                                                                setTagSearch("");
+                                                            }}
+                                                        >
+                                                            <Check className={`mr-2 h-3.5 w-3.5 ${form.tags.includes(t) ? "opacity-100 text-emerald-600" : "opacity-0"}`} />
+                                                            {t}
+                                                        </CommandItem>
+                                                    ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <p className="text-[11px] text-slate-400">Click to select existing tags or type to create new ones.</p>
                         </div>
                     </div>
 

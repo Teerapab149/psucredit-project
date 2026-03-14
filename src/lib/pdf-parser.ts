@@ -1,5 +1,27 @@
 import type { ParsedSubject, StudentInfo } from "@/types";
 
+/** Maps English academic terms (case-insensitive) to their standard Thai equivalents. */
+const ACADEMIC_TERMS_TH: Record<string, string> = {
+    "management sciences":         "วิทยาการจัดการ",
+    "business administration":     "บริหารธุรกิจ",
+    "business information system": "สารสนเทศทางธุรกิจ",
+    "hat yai":                     "หาดใหญ่",
+};
+
+/**
+ * If `text` contains any English key from ACADEMIC_TERMS_TH (case-insensitive),
+ * return the mapped Thai term. Otherwise return the original text unchanged.
+ * Longer keys are checked first so more-specific terms win over sub-strings.
+ */
+function translateTerm(text: string): string {
+    const lower = text.toLowerCase();
+    const entries = Object.entries(ACADEMIC_TERMS_TH).sort((a, b) => b[0].length - a[0].length);
+    for (const [en, th] of entries) {
+        if (lower.includes(en)) return th;
+    }
+    return text;
+}
+
 /**
  * PSU SIS PDF Formats (based on actual extracted text):
  *
@@ -168,13 +190,21 @@ export function calculateConfidence(subjects: ParsedSubject[]): number {
 
 /**
  * Extract student information from the PDF text.
+ * Supports both Thai PSU SIS PDFs and English PSU SIS Grade Reports.
  */
 export function parseStudentInfo(rawText: string): StudentInfo | null {
     const text = cleanText(rawText);
 
-    // Extract Name and ID
-    const nameIdMatch = text.match(/(?:นาย|นาง|นางสาว|Mr\.|Ms\.)\s*([ก-๙a-zA-Z]+\s+[ก-๙a-zA-Z]+(?:\s+[ก-๙a-zA-Z]+)?)\s+รหัสนักศึกษา\s+(\d{10})/);
-    const altNameIdMatch = text.match(/([ก-๙a-zA-Z]+\s+[ก-๙a-zA-Z]+)\s+รหัสนักศึกษา\s+(\d{10})/);
+    // ── Name & Student ID ──────────────────────────────────────────────────────
+    // Thai format:  นาย/นาง/นางสาว <Name>  รหัสนักศึกษา <10-digit ID>
+    // English format: Mister/Miss <NAME>  Student Id <10-digit ID>
+    const nameIdMatch =
+        text.match(/(?:นาย|นาง|นางสาว|Mr\.|Ms\.)\s*([ก-๙a-zA-Z]+(?:\s+[ก-๙a-zA-Z]+)+)\s+รหัสนักศึกษา\s+(\d{10})/) ||
+        text.match(/(?:Mister|Miss)\s+([A-Z][A-Z\s]+?)\s+Student\s+Id\s+(\d{10})/i);
+
+    const altNameIdMatch =
+        text.match(/([ก-๙a-zA-Z]+\s+[ก-๙a-zA-Z]+)\s+รหัสนักศึกษา\s+(\d{10})/) ||
+        text.match(/([A-Z][A-Z\s]+?)\s+Student\s+Id\s+(\d{10})/i);
 
     let name = "Unknown";
     let studentId = "";
@@ -186,28 +216,80 @@ export function parseStudentInfo(rawText: string): StudentInfo | null {
         name = altNameIdMatch[1].trim();
         studentId = altNameIdMatch[2];
     } else {
-        const idOnly = text.match(/รหัสนักศึกษา\s+(\d{10})/);
+        // Last resort: bare ID with either Thai or English label
+        const idOnly =
+            text.match(/รหัสนักศึกษา\s+(\d{10})/) ||
+            text.match(/Student\s+Id\s+(\d{10})/i);
         if (idOnly) studentId = idOnly[1];
         else return null; // ID is essential
     }
 
     const admissionYear = studentId.length >= 2 ? parseInt("25" + studentId.substring(0, 2)) : 0;
 
-    // Extract Academic Info
-    const campusMatch = text.match(/วิทยาเขต([^\s]+)/);
-    const facultyMatch = text.match(/คณะ([^\s]+)/);
-    const deptMatch = text.match(/ภาควิชา([^\s]+)/);
-    // Match "สาขาวิชาXYZ" or "สาขาXYZ"
-    const majorGroupMatch = text.match(/(?:สาขาวิชา|สาขา)([^\s\(]+)/);
+    // ── Campus ─────────────────────────────────────────────────────────────────
+    // Thai:    วิทยาเขต<term>
+    // English: <term> Campus  (e.g. "Hat Yai Campus")
+    const campusMatchTh = text.match(/วิทยาเขต([^\s]+)/);
+    const campusMatchEn = text.match(/([A-Za-zก-๙\s]+?)\s+Campus/i);
+    const rawCampus = campusMatchTh
+        ? campusMatchTh[1]
+        : campusMatchEn
+            ? campusMatchEn[1].trim()
+            : "";
+    const campus = rawCampus ? "วิทยาเขต" + translateTerm(rawCampus) : "";
 
-    const campus = campusMatch ? "วิทยาเขต" + campusMatch[1] : "";
-    const faculty = facultyMatch ? "คณะ" + facultyMatch[1] : "";
-    const department = deptMatch ? "ภาควิชา" + deptMatch[1] : "";
-    const major = majorGroupMatch ? "สาขา" + majorGroupMatch[1].replace(/^วิชา/, "") : "";
+    // ── Faculty ────────────────────────────────────────────────────────────────
+    // Thai:    คณะ<term>
+    // English: Faculty of <term>
+    const facultyMatchTh = text.match(/คณะ([^\s]+)/);
+    const facultyMatchEn = text.match(/Faculty\s+of\s+([^\n\r(]+?)(?:\s*\n|\s{2,}|$)/i);
+    const rawFaculty = facultyMatchTh
+        ? facultyMatchTh[1]
+        : facultyMatchEn
+            ? facultyMatchEn[1].trim()
+            : "";
+    const faculty = rawFaculty ? "คณะ" + translateTerm(rawFaculty) : "";
 
-    // Extract Track, which is typically in parentheses right after the major
-    const trackMatch = text.match(/(?:สาขาวิชา|สาขา)[^\s\(]+\s*\((.+?)\)/);
-    const track = trackMatch ? trackMatch[1].trim() : undefined;
+    // ── Department ─────────────────────────────────────────────────────────────
+    // Thai:    ภาควิชา<term>
+    // English: Department of <term>
+    const deptMatchTh = text.match(/ภาควิชา([^\s]+)/);
+    const deptMatchEn = text.match(/Department\s+of\s+([^\n\r(]+?)(?:\s*\n|\s{2,}|$)/i);
+    const rawDept = deptMatchTh
+        ? deptMatchTh[1]
+        : deptMatchEn
+            ? deptMatchEn[1].trim()
+            : "";
+    const department = rawDept ? "ภาควิชา" + translateTerm(rawDept) : "";
+
+    // ── Major & Track ──────────────────────────────────────────────────────────
+    // Thai:    สาขาวิชา<term> or สาขา<term>, optional (track) in parens
+    // English: <Major Name> (<Track Name>)  — appears after Faculty/Department line
+    //          e.g. "Business Administration (Business Information System)"
+    const majorMatchTh = text.match(/(?:สาขาวิชา|สาขา)([^\s(]+)/);
+    const trackMatchTh = text.match(/(?:สาขาวิชา|สาขา)[^\s(]+\s*\((.+?)\)/);
+
+    // English: a known academic term optionally followed by (another term).
+    // The negative lookbehind (?<! of ) skips terms that appear inside
+    // "Faculty of ..." or "Department of ..." lines, so we only capture
+    // the standalone major line (e.g. "Business Administration (Business Information System)").
+    const majorMatchEn = text.match(
+        /(?<! of )\b(Management Sciences|Business Administration|Business Information System)\s*(?:\(([^)]+)\))?/i
+    );
+
+    let rawMajor = "";
+    let rawTrack: string | undefined;
+
+    if (majorMatchTh) {
+        rawMajor = majorMatchTh[1].replace(/^วิชา/, "");
+        rawTrack = trackMatchTh ? trackMatchTh[1].trim() : undefined;
+    } else if (majorMatchEn) {
+        rawMajor = majorMatchEn[1].trim();
+        rawTrack = majorMatchEn[2] ? majorMatchEn[2].trim() : undefined;
+    }
+
+    const major = rawMajor ? "สาขา" + translateTerm(rawMajor) : "";
+    const track = rawTrack ? translateTerm(rawTrack) : undefined;
 
     return {
         name,
