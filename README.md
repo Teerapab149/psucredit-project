@@ -25,7 +25,7 @@ npm install
 3. Run the development server:
 npm run dev
 
-👤 Author
-Teerapab Boonsri (6610510149)
-Business Information Systems (BIS), Faculty of Management Sciences
-Prince of Songkla University
+## 👤 Author
+* Teerapab Boonsri (6610510149)
+* Business Information Systems (BIS), Faculty of Management Sciences
+* Prince of Songkla University
