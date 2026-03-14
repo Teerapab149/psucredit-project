@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Calendar, Trash2, Copy, AlertCircle, Pencil } from "lucide-react";
+import { Plus, Calendar, Trash2, Copy, AlertCircle, Pencil, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -552,6 +552,15 @@ export default function CurriculumsPage() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-1">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        title="Manage categories & subjects"
+                                                        className="h-8 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 mr-1"
+                                                        onClick={() => router.push(`/admin/categories?id=${y.id}`)}
+                                                    >
+                                                        Manage <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" title="Edit Template" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
@@ -665,6 +674,15 @@ export default function CurriculumsPage() {
                                                                     )}
                                                                 </TableCell>
                                                                 <TableCell className="text-right space-x-1">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        title="Manage categories & subjects"
+                                                                        className="h-8 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 mr-1"
+                                                                        onClick={() => router.push(`/admin/categories?id=${y.id}`)}
+                                                                    >
+                                                                        Manage <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                                                    </Button>
                                                                     <Button variant="ghost" size="icon" title="Edit Curriculum" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
                                                                         <Pencil className="h-4 w-4" />
                                                                     </Button>

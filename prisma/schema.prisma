@@ -69,17 +69,21 @@ model CurriculumCategory {
 }
 
 model Subject {
-  id           String             @id @default(cuid())
-  code         String
-  name         String
-  credits      Int
-  categoryId   String?
-  category     CurriculumCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subjectGroup String? // e.g., 'GE1', 'Core'
-  userSubjects UserSubject[]
-  planSubjects PlanSubject[] // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id              String              @id @default(cuid())
+  code            String
+  name            String
+  credits         Int
+  categoryId      String?
+  category        CurriculumCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subjectGroup    String?             // e.g., 'GE1', 'Core'
+  // Link back to the Global Subject Bank entry this row was cloned from.
+  // SetNull: removing a MasterSubject orphans curriculum copies — it does NOT delete them.
+  masterSubjectId String?
+  masterSubject   MasterSubject?      @relation(fields: [masterSubjectId], references: [id], onDelete: SetNull)
+  userSubjects    UserSubject[]
+  planSubjects    PlanSubject[]       // เพิ่ม: ความสัมพันธ์กับวิชาจำลอง
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@unique([code, categoryId])
 }
@@ -152,12 +156,14 @@ model SubjectEquivalency {
 
 // Global Subject Bank — master catalog independent of any curriculum
 model MasterSubject {
-  id           String   @id @default(cuid())
-  code         String   @unique
+  id           String    @id @default(cuid())
+  code         String    @unique
   name         String
   credits      Int
-  subjectGroup String?  // e.g., 'GE1', 'Core', 'Free Elective'
-  tags         String[] // e.g., ['math', 'required']
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  subjectGroup String?   // e.g., 'GE1', 'Core', 'Free Elective'
+  tags         String[]  // e.g., ['math', 'required']
+  // All curriculum Subject rows that were cloned from this master entry
+  subjects     Subject[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

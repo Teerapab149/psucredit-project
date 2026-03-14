@@ -107,7 +107,12 @@ export async function POST(request: Request) {
         }
 
         // Track which subjects are matched
+        // matchedCodes: "<studentCode>-<catId>" — prevents same student subject
+        //               matching the same category twice
+        // matchedSubjectCodes: the student codes already consumed in Phase 1,
+        //               used to exclude them from Phase 2 spillover
         const matchedCodes = new Set<string>();
+        const matchedSubjectCodes = new Set<string>();
 
         // Recursive match function
         function matchCategory(
@@ -141,6 +146,7 @@ export async function POST(request: Request) {
                 );
                 if (found) {
                     matchedCodes.add(`${found.code}-${cat.id}`);
+                    matchedSubjectCodes.add(found.code);
                     matchedSubjects.push({
                         code: found.code,
                         name: found.name,
@@ -193,12 +199,9 @@ export async function POST(request: Request) {
         const result: CategoryMatch[] = rootCategories.map(matchCategory).filter(Boolean) as CategoryMatch[];
 
         // --- Phase 2: Waterfall Spillover Logic ---
-        // 1. Find all explicit unmatched subjects 
-        const allMatchedCodes = new Set(
-            Array.from(matchedCodes).map((key) => key.split("-")[0])
-        );
+        // 1. Find all subjects NOT consumed in Phase 1 (exact code match)
         let currentUnmatchedSubjects = subjects.filter(
-            (s) => !allMatchedCodes.has(s.code)
+            (s) => !matchedSubjectCodes.has(s.code)
         );
 
         // Calculate credits for a given category (own + children)

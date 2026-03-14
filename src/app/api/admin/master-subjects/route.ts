@@ -3,14 +3,36 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/admin/master-subjects — list all master subjects, optional ?group= filter
+// GET /api/admin/master-subjects
+// Query params:
+//   ?search=<text>   — filter by code or name (case-insensitive)
+//   ?group=<value>   — filter by subjectGroup exact match; use "none" for null group
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const group = searchParams.get("group");
+        const search = searchParams.get("search")?.trim() ?? "";
+        const group  = searchParams.get("group");
 
         const subjects = await prisma.masterSubject.findMany({
-            where: group ? { subjectGroup: group } : undefined,
+            where: {
+                AND: [
+                    // Group filter
+                    group !== null
+                        ? group === "none"
+                            ? { subjectGroup: null }
+                            : { subjectGroup: group }
+                        : {},
+                    // Text search across code and name
+                    search
+                        ? {
+                              OR: [
+                                  { code: { contains: search, mode: "insensitive" } },
+                                  { name: { contains: search, mode: "insensitive" } },
+                              ],
+                          }
+                        : {},
+                ],
+            },
             orderBy: { code: "asc" },
         });
 

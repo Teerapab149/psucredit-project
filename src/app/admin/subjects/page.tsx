@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Search, Database, Trash2, Edit, X, Tag } from "lucide-react";
+import { Plus, Search, Database, Trash2, Edit, Tag, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +68,8 @@ export default function SubjectDatabasePage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isMigrating, setIsMigrating] = useState(false);
+    const [unlinkedCount, setUnlinkedCount] = useState<number | null>(null);
 
     const [form, setForm] = useState(emptyForm);
 
@@ -76,8 +78,15 @@ export default function SubjectDatabasePage() {
     const fetchSubjects = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/admin/master-subjects");
-            if (res.ok) setSubjects(await res.json());
+            const [masterRes, allSubjectsRes] = await Promise.all([
+                fetch("/api/admin/master-subjects"),
+                fetch("/api/admin/subjects"),
+            ]);
+            if (masterRes.ok) setSubjects(await masterRes.json());
+            if (allSubjectsRes.ok) {
+                const all: { masterSubjectId: string | null }[] = await allSubjectsRes.json();
+                setUnlinkedCount(all.filter(s => !s.masterSubjectId).length);
+            }
         } catch {
             toast.error("Failed to load subject bank");
         } finally {
@@ -86,6 +95,24 @@ export default function SubjectDatabasePage() {
     }, []);
 
     useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
+
+    const runMigration = async () => {
+        setIsMigrating(true);
+        try {
+            const res = await fetch("/api/admin/master-subjects/migrate", { method: "POST" });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(data.message);
+                fetchSubjects();
+            } else {
+                toast.error(data.error || "Migration failed");
+            }
+        } catch {
+            toast.error("An error occurred during migration");
+        } finally {
+            setIsMigrating(false);
+        }
+    };
 
     // ── Derived lists ─────────────────────────────────────────────────────────
 
@@ -213,6 +240,36 @@ export default function SubjectDatabasePage() {
                     <Plus className="mr-2 h-4 w-4" /> Add to Bank
                 </Button>
             </div>
+
+            {/* Migration banner — shown only while unlinked subjects exist */}
+            {unlinkedCount !== null && unlinkedCount > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-semibold text-amber-800">
+                                {unlinkedCount} curriculum subject{unlinkedCount > 1 ? "s" : ""} not yet in the bank
+                            </p>
+                            <p className="text-xs text-amber-600 mt-0.5">
+                                These subjects were added before the Master Bank system existed.
+                                Run migration to bring them into the bank so they appear here and can be managed.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={runMigration}
+                        disabled={isMigrating}
+                        className="bg-amber-500 hover:bg-amber-600 text-white shrink-0 shadow-sm"
+                        size="sm"
+                    >
+                        {isMigrating ? (
+                            <><RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> Migrating...</>
+                        ) : (
+                            <><RefreshCw className="mr-2 h-3.5 w-3.5" /> Migrate to Bank</>
+                        )}
+                    </Button>
+                </div>
+            )}
 
             {/* Table card */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
