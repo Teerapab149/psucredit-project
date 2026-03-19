@@ -10,12 +10,14 @@ import {
     Plus,
     Trash2,
     ArrowRight,
+    ArrowLeft,
     AlertTriangle,
     CheckCircle2,
     User,
     GraduationCap,
     School,
     BookOpen,
+    FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +30,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { useCreditStore } from "@/store/credit-store";
 import { GRADE_OPTIONS } from "@/types";
 
@@ -154,268 +148,330 @@ export default function VerifyPage() {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-            <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="min-h-screen bg-slate-50/50 selection:bg-blue-200 font-sans text-slate-900 overflow-hidden relative pb-24">
+            
+            {/* ═══════ DYNAMIC LIGHT BACKGROUND ═══════ */}
+            <div className="fixed inset-0 pointer-events-none flex justify-center overflow-hidden z-0">
+                <div className="absolute top-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent"></div>
+                <div className="absolute bottom-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-100/40 via-transparent to-transparent"></div>
+                <div
+                    className="absolute inset-0 opacity-[0.3]"
+                    style={{
+                        backgroundImage: "linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)",
+                        backgroundSize: "4rem 4rem",
+                        maskImage: "radial-gradient(circle at center, black, transparent 80%)",
+                        WebkitMaskImage: "radial-gradient(circle at center, black, transparent 80%)",
+                    }}
+                />
+            </div>
+
+            <div className="relative z-10 mx-auto max-w-6xl px-4 py-12 pt-24">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                 >
-                    {/* Header */}
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-slate-900">
-                                Verify Your Subjects
-                            </h1>
-                            <p className="mt-1 text-slate-600">
-                                Review and correct the parsed data before comparing with the
-                                curriculum
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Badge
-                                variant="outline"
-                                className="bg-white px-3 py-1 text-sm font-mono"
-                            >
-                                {fields.length} subjects · {totalCredits} credits
-                            </Badge>
+                    {/* ═══════ BACK BUTTON ═══════ */}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => router.back()}
+                        className="mb-6 gap-2 text-slate-500 hover:text-blue-600 px-0 hover:bg-transparent transition-colors"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                        <span className="font-semibold text-base">Back to Upload</span>
+                    </Button>
+
+                    {/* ═══════ HEADER ═══════ */}
+                    <div className="relative mb-10 group">
+                        {/* Glow Effect */}
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-70 transition duration-500"></div>
+                        
+                        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/90 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] border border-white/50 shadow-sm overflow-hidden">
+                            {/* Top accent line */}
+                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                            
+                            <div>
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="p-3.5 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 text-white">
+                                        <FileText className="h-7 w-7" />
+                                    </div>
+                                    <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-900">
+                                        Verify Subjects
+                                    </h1>
+                                </div>
+                                <p className="text-slate-500 font-medium text-base md:text-lg">
+                                    ตรวจสอบและแก้ไขข้อมูลให้ถูกต้องก่อนนำไปเปรียบเทียบกับหลักสูตร
+                                </p>
+                            </div>
+                            
+                            <div className="flex gap-4 w-full sm:w-auto">
+                                <div className="flex-1 sm:flex-none flex flex-col items-center justify-center bg-blue-50/80 border border-blue-100 rounded-2xl p-4 min-w-[110px] shadow-sm">
+                                    <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-blue-800">{fields.length}</span>
+                                    <span className="text-xs font-bold text-blue-600/70 uppercase tracking-widest mt-1">Subjects</span>
+                                </div>
+                                <div className="flex-1 sm:flex-none flex flex-col items-center justify-center bg-indigo-50/80 border border-indigo-100 rounded-2xl p-4 min-w-[110px] shadow-sm">
+                                    <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-indigo-600 to-purple-600">{totalCredits}</span>
+                                    <span className="text-xs font-bold text-indigo-600/70 uppercase tracking-widest mt-1">Credits</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Student Info Card */}
+                    {/* ═══════ STUDENT INFO CARDS ═══════ */}
                     {studentInfo && (
-                        <Card className="mb-6 border-0 shadow-md shadow-slate-200/50">
-                            <CardHeader className="bg-slate-50/50 border-b pb-4">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <User className="h-5 w-5 text-blue-600" />
-                                    Student Information
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
-                                    <div>
-                                        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> Name</p>
-                                        <p className="font-medium text-slate-800">{studentInfo.name}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <Card className="border-0 bg-white/80 backdrop-blur-lg shadow-sm hover:shadow-md transition-shadow rounded-3xl">
+                                <CardContent className="p-6 flex items-start gap-4">
+                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                                        <User className="h-6 w-6" />
                                     </div>
                                     <div>
-                                        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1.5"><Badge variant="outline" className="px-1 text-[10px] h-4">ID</Badge> Student ID</p>
-                                        <p className="font-medium text-slate-800 font-mono tracking-tight">{studentInfo.studentId}</p>
+                                        <p className="text-sm font-semibold text-slate-400 mb-1">Name</p>
+                                        <p className="font-bold text-slate-800 line-clamp-2">{studentInfo.name}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 bg-white/80 backdrop-blur-lg shadow-sm hover:shadow-md transition-shadow rounded-3xl">
+                                <CardContent className="p-6 flex items-start gap-4">
+                                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                                        <Badge variant="outline" className="px-1 text-[10px] h-6 border-indigo-200 bg-white">ID</Badge>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1.5"><School className="h-3.5 w-3.5" /> Campus</p>
-                                        <p className="font-medium text-slate-800">{studentInfo.campus || "-"}</p>
+                                        <p className="text-sm font-semibold text-slate-400 mb-1">Student ID</p>
+                                        <p className="font-bold text-slate-800 font-mono text-lg">{studentInfo.studentId}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 bg-white/80 backdrop-blur-lg shadow-sm hover:shadow-md transition-shadow rounded-3xl">
+                                <CardContent className="p-6 flex items-start gap-4">
+                                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                                        <School className="h-6 w-6" />
                                     </div>
                                     <div>
-                                        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" /> Faculty</p>
-                                        <p className="font-medium text-slate-800">{studentInfo.faculty || "-"}</p>
+                                        <p className="text-sm font-semibold text-slate-400 mb-1">Campus</p>
+                                        <p className="font-bold text-slate-800">{studentInfo.campus || "-"}</p>
                                     </div>
-                                    <div className="lg:col-span-2">
-                                        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Major / Track</p>
-                                        <p className="font-medium text-slate-800">
-                                            {studentInfo.major || "-"} {studentInfo.track ? <span className="text-blue-600 ml-1">({studentInfo.track})</span> : ""}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 bg-white/80 backdrop-blur-lg shadow-sm hover:shadow-md transition-shadow rounded-3xl">
+                                <CardContent className="p-6 flex items-start gap-4">
+                                    <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                                        <GraduationCap className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-400 mb-1">Faculty</p>
+                                        <p className="font-bold text-slate-800 line-clamp-2">{studentInfo.faculty || "-"}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="lg:col-span-4 border-0 bg-gradient-to-r from-blue-50 to-indigo-50/50 backdrop-blur-lg shadow-sm rounded-3xl">
+                                <CardContent className="p-6 flex items-center gap-4">
+                                    <div className="p-3 bg-white text-blue-600 shadow-sm rounded-2xl">
+                                        <BookOpen className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-500 mb-1">Major / Track</p>
+                                        <p className="font-bold text-slate-900 text-lg flex flex-wrap items-center gap-2">
+                                            {studentInfo.major || "-"} 
+                                            {studentInfo.track && (
+                                                <span className="bg-indigo-600 text-white px-3 py-1 rounded-xl text-sm shadow-sm">
+                                                    {studentInfo.track}
+                                                </span>
+                                            )}
                                         </p>
                                     </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* ═══════ CONFIDENCE ALERT ═══════ */}
+                    <AnimatePresence>
+                        {parseConfidence > 0 && parseConfidence < 80 && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="mb-8 flex items-center gap-4 rounded-[2rem] border-2 border-amber-200 bg-amber-50 p-6 shadow-sm"
+                            >
+                                <div className="p-3 bg-amber-100 rounded-2xl">
+                                    <AlertTriangle className="h-6 w-6 text-amber-600" />
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                <div>
+                                    <p className="font-bold text-amber-900 text-lg">
+                                        Low parsing confidence: {parseConfidence}%
+                                    </p>
+                                    <p className="text-sm font-medium text-amber-700 mt-1">
+                                        ข้อมูลบางส่วนอาจไม่ถูกต้อง โปรดตรวจสอบรหัสวิชาและเกรดแต่ละแถวอย่างละเอียด
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
 
-                    {/* Parse Confidence Warning */}
-                    {parseConfidence > 0 && parseConfidence < 80 && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"
-                        >
-                            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-                            <div>
-                                <p className="font-medium text-amber-800">
-                                    Low parsing confidence: {parseConfidence}%
-                                </p>
-                                <p className="text-sm text-amber-700">
-                                    Some subjects may not have been parsed correctly. Please
-                                    review each row carefully.
-                                </p>
-                            </div>
-                        </motion.div>
-                    )}
+                        {parseConfidence >= 80 && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="mb-8 flex items-center gap-4 rounded-[2rem] border-2 border-emerald-100 bg-emerald-50/50 p-6 shadow-sm"
+                            >
+                                <div className="p-3 bg-emerald-100 rounded-2xl">
+                                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-emerald-900 text-lg">
+                                        Parsing confidence: {parseConfidence}%
+                                    </p>
+                                    <p className="text-sm font-medium text-emerald-700 mt-1">
+                                        ดึงข้อมูลสำเร็จ! โปรดตรวจสอบความถูกต้องอีกครั้งก่อนไปต่อ
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    {parseConfidence >= 80 && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="mb-4 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4"
-                        >
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-                            <p className="text-sm text-emerald-700">
-                                Parsing confidence: <strong>{parseConfidence}%</strong> — Data
-                                looks good! Still, please review before proceeding.
-                            </p>
-                        </motion.div>
-                    )}
-
-                    {/* Editable Table */}
+                    {/* ═══════ EDITABLE LIST ═══════ */}
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <Card className="mb-6 border-0 shadow-lg shadow-slate-200/50 overflow-hidden">
-                            <CardHeader className="bg-white border-b">
-                                <CardTitle className="text-lg">Subject List</CardTitle>
-                            </CardHeader>
+                        <Card className="mb-8 border-0 bg-white/80 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[2rem] overflow-hidden relative">
                             <CardContent className="p-0">
                                 <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-slate-50">
-                                                <TableHead className="w-12 text-center">#</TableHead>
-                                                <TableHead className="w-36">Code</TableHead>
-                                                <TableHead className="min-w-[250px]">
-                                                    Subject Name
-                                                </TableHead>
-                                                <TableHead className="w-24 text-center">
-                                                    Credits
-                                                </TableHead>
-                                                <TableHead className="w-36">Grade</TableHead>
-                                                <TableHead className="w-28">Status</TableHead>
-                                                <TableHead className="w-16"></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
+                                    <div className="min-w-[800px] w-full p-6">
+                                        {/* Table Header Custom */}
+                                        <div className="grid grid-cols-[3rem_10rem_1fr_6rem_8rem_8rem_4rem] gap-4 mb-4 px-4 py-3 bg-slate-100/50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-500">
+                                            <div className="text-center">#</div>
+                                            <div>Code</div>
+                                            <div>Subject Name</div>
+                                            <div className="text-center">Credits</div>
+                                            <div>Grade</div>
+                                            <div>Status</div>
+                                            <div></div>
+                                        </div>
+
+                                        {/* Table Rows */}
+                                        <div className="space-y-3">
                                             <AnimatePresence>
                                                 {fields.map((field, index) => (
-                                                    <motion.tr
+                                                    <motion.div
                                                         key={field.id}
-                                                        initial={{ opacity: 0, x: -20 }}
+                                                        initial={{ opacity: 0, y: 10 }}
                                                         animate={{
                                                             opacity: deletingIds.has(field.id) ? 0 : 1,
-                                                            x: deletingIds.has(field.id) ? 100 : 0,
-                                                            height: deletingIds.has(field.id) ? 0 : "auto",
+                                                            scale: deletingIds.has(field.id) ? 0.95 : 1,
                                                         }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="group border-b hover:bg-blue-50/30"
+                                                        transition={{ duration: 0.2 }}
+                                                        className="grid grid-cols-[3rem_10rem_1fr_6rem_8rem_8rem_4rem] gap-4 items-center px-4 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 hover:bg-blue-50/30 transition-all group"
                                                     >
-                                                        <TableCell className="text-center text-sm text-slate-400">
+                                                        <div className="text-center font-bold text-slate-300 group-hover:text-blue-400">
                                                             {index + 1}
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div>
                                                             <Input
                                                                 {...register(`subjects.${index}.code`)}
                                                                 placeholder="XXX-XXX"
-                                                                className={`font-mono text-sm ${errors.subjects?.[index]?.code
-                                                                    ? "border-red-300 focus:ring-red-500"
-                                                                    : ""
-                                                                    }`}
+                                                                className={`font-mono font-semibold text-sm h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                                                                    errors.subjects?.[index]?.code ? "border-red-300 focus:ring-red-500 bg-red-50 text-red-600" : ""
+                                                                }`}
                                                             />
-                                                            {errors.subjects?.[index]?.code && (
-                                                                <p className="mt-1 text-xs text-red-500">
-                                                                    {errors.subjects[index].code?.message}
-                                                                </p>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div>
                                                             <Input
                                                                 {...register(`subjects.${index}.name`)}
                                                                 placeholder="Subject name"
-                                                                className={`text-sm ${errors.subjects?.[index]?.name
-                                                                    ? "border-red-300 focus:ring-red-500"
-                                                                    : ""
-                                                                    }`}
+                                                                className={`text-sm font-semibold h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                                                                    errors.subjects?.[index]?.name ? "border-red-300 focus:ring-red-500 bg-red-50 text-red-600" : ""
+                                                                }`}
                                                             />
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div>
                                                             <Input
                                                                 {...register(`subjects.${index}.credits`, { valueAsNumber: true })}
                                                                 type="number"
                                                                 min={1}
                                                                 max={12}
-                                                                className="text-center text-sm w-20"
+                                                                className="text-center font-bold text-sm h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-full"
                                                             />
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div>
                                                             <Select
                                                                 value={
                                                                     watchedSubjects?.[index]?.grade ??
-                                                                    (watchedSubjects?.[index]?.status ===
-                                                                        "IN_PROGRESS"
-                                                                        ? "In Progress"
-                                                                        : "")
+                                                                    (watchedSubjects?.[index]?.status === "IN_PROGRESS" ? "In Progress" : "")
                                                                 }
-                                                                onValueChange={(val) =>
-                                                                    handleGradeChange(index, val)
-                                                                }
+                                                                onValueChange={(val) => handleGradeChange(index, val)}
                                                             >
-                                                                <SelectTrigger className="text-sm">
-                                                                    <SelectValue placeholder="Select" />
+                                                                <SelectTrigger className="text-sm font-bold h-11 rounded-xl bg-slate-50 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                                                    <SelectValue placeholder="-" />
                                                                 </SelectTrigger>
-                                                                <SelectContent>
+                                                                <SelectContent className="rounded-xl border-slate-200 shadow-xl font-medium">
                                                                     {GRADE_OPTIONS.map((g) => (
-                                                                        <SelectItem key={g} value={g}>
+                                                                        <SelectItem key={g} value={g} className="rounded-lg">
                                                                             {g}
                                                                         </SelectItem>
                                                                     ))}
                                                                 </SelectContent>
                                                             </Select>
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div>
                                                             <Badge
                                                                 variant="outline"
-                                                                className={`text-xs ${watchedSubjects?.[index]?.status ===
-                                                                    "COMPLETED"
-                                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                                    : watchedSubjects?.[index]?.status ===
-                                                                        "IN_PROGRESS"
-                                                                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                                                                        : watchedSubjects?.[index]?.status ===
-                                                                            "WITHDRAWN"
-                                                                            ? "bg-orange-50 text-orange-700 border-orange-200"
-                                                                            : "bg-red-50 text-red-700 border-red-200"
-                                                                    }`}
+                                                                className={`w-full justify-center h-8 text-xs font-bold rounded-lg border-transparent shadow-sm ${
+                                                                    watchedSubjects?.[index]?.status === "COMPLETED"
+                                                                        ? "bg-emerald-100 text-emerald-700"
+                                                                        : watchedSubjects?.[index]?.status === "IN_PROGRESS"
+                                                                            ? "bg-blue-100 text-blue-700"
+                                                                            : watchedSubjects?.[index]?.status === "WITHDRAWN"
+                                                                                ? "bg-amber-100 text-amber-700"
+                                                                                : "bg-red-100 text-red-700"
+                                                                }`}
                                                             >
-                                                                {watchedSubjects?.[index]?.status ===
-                                                                    "COMPLETED"
+                                                                {watchedSubjects?.[index]?.status === "COMPLETED"
                                                                     ? "Completed"
-                                                                    : watchedSubjects?.[index]?.status ===
-                                                                        "IN_PROGRESS"
+                                                                    : watchedSubjects?.[index]?.status === "IN_PROGRESS"
                                                                         ? "In Progress"
-                                                                        : watchedSubjects?.[index]?.status ===
-                                                                            "WITHDRAWN"
+                                                                        : watchedSubjects?.[index]?.status === "WITHDRAWN"
                                                                             ? "Withdrawn"
                                                                             : "Failed"}
                                                             </Badge>
-                                                        </TableCell>
-                                                        <TableCell>
+                                                        </div>
+                                                        <div className="flex justify-end">
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
-                                                                size="sm"
+                                                                size="icon"
                                                                 onClick={() => deleteRow(index, field.id)}
-                                                                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50 transition-opacity"
+                                                                className="h-11 w-11 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all group-hover:text-red-400"
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
+                                                                <Trash2 className="h-5 w-5" />
                                                             </Button>
-                                                        </TableCell>
-                                                    </motion.tr>
+                                                        </div>
+                                                    </motion.div>
                                                 ))}
                                             </AnimatePresence>
-                                        </TableBody>
-                                    </Table>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* Actions */}
-                        <div className="flex items-center justify-between">
+                        {/* ═══════ ACTIONS ═══════ */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={addRow}
-                                className="gap-2"
+                                className="w-full sm:w-auto h-14 px-6 gap-2 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/50 text-blue-600 hover:bg-blue-100 hover:border-blue-300 font-bold shadow-sm transition-all"
                             >
-                                <Plus className="h-4 w-4" />
-                                Add Subject
+                                <Plus className="h-5 w-5" />
+                                Add Subject manually
                             </Button>
 
                             <Button
                                 type="submit"
                                 size="lg"
-                                className="gap-2 bg-blue-600 text-lg font-semibold shadow-lg shadow-blue-600/25 hover:bg-blue-700"
+                                className="w-full sm:w-auto h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-lg font-bold shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_40px_rgba(79,70,229,0.5)] rounded-2xl transition-all hover:-translate-y-1 border border-white/20"
                             >
                                 Compare Curriculum
                                 <ArrowRight className="h-5 w-5" />

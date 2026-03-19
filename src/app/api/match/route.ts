@@ -324,7 +324,7 @@ export async function POST(request: Request) {
                     });
 
                     for (const sub of sortedSubjects) {
-                        if (total + sub.credits <= catMatch.requiredCredits) {
+                        if (total < catMatch.requiredCredits) {
                             keptSubjects.push(sub);
                             total += sub.credits;
                         } else {
