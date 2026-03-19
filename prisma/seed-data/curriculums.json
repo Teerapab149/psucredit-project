@@ -1,0 +1,2081 @@
+[
+  {
+    "faculty": "คณะวิทยาการจัดการ",
+    "facultyShort": "FMS",
+    "departments": [
+      {
+        "name": "บริหารธุรกิจ",
+        "shortName": "BBA",
+        "curriculums": [
+          {
+            "name": "หลักสูตรบริหารธุรกิจบัณฑิต",
+            "startYear": 2563,
+            "endYear": 2566,
+            "totalCredits": 129,
+            "geType": "OLD",
+            "majors": [
+              {
+                "name": "การเงินและการลงทุน",
+                "shortName": "FIN",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 30,
+                    "children": [
+                      {
+                        "name": "สาระที่ 1 ศาสตร์พระราชาและประโยชน์เพื่อนมนุษย์",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 2 ความเป็นพลเมืองและชีวิตที่สันติ",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 5
+                      },
+                      {
+                        "name": "สาระที่ 3 การเป็นผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 1
+                      },
+                      {
+                        "name": "สาระที่ 4 การอยู่อย่างรู้เท่าทันและการรู้ดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 5 การคิดเชิงระบบการคิดเชิงตรรกะและตัวเลข",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 6 ภาษาและการสื่อสาร",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 7 สุนทรียศาสตร์และกีฬา",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "รายวิชาเลือก",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 93,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 39
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 54,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 30,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 39
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 15
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": null,
+                                    "requiredCredits": 0
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การตลาด",
+                "shortName": "MKT",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categoriesRef": "FIN"
+              },
+              {
+                "name": "การจัดการทรัพยากรมนุษย์",
+                "shortName": "HRM",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categoriesRef": "FIN"
+              },
+              {
+                "name": "การจัดการโลจิสติกส์และโซ่อุปทาน",
+                "shortName": "LOG",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกและวิชาโท",
+                    "planType": "COOP",
+                    "trackType": "DUAL"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 30,
+                    "children": [
+                      {
+                        "name": "สาระที่ 1 ศาสตร์พระราชาและประโยชน์เพื่อนมนุษย์",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 2 ความเป็นพลเมืองและชีวิตที่สันติ",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 5
+                      },
+                      {
+                        "name": "สาระที่ 3 การเป็นผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 1
+                      },
+                      {
+                        "name": "สาระที่ 4 การอยู่อย่างรู้เท่าทันและการรู้ดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 5 การคิดเชิงระบบการคิดเชิงตรรกะและตัวเลข",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 6 ภาษาและการสื่อสาร",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 7 สุนทรียศาสตร์และกีฬา",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "รายวิชาเลือก",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 93,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 39
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 54,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 33,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 39
+                              },
+                              {
+                                "planType": "COOP",
+                                "trackType": "DUAL",
+                                "requiredCredits": 39
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 21,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 15
+                              },
+                              {
+                                "planType": "COOP",
+                                "trackType": "DUAL",
+                                "requiredCredits": 15
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 6
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "SINGLE",
+                                    "requiredCredits": 15
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 0
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "ระบบสารสนเทศทางธุรกิจ",
+                "shortName": "BIS",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 30,
+                    "children": [
+                      {
+                        "name": "สาระที่ 1 ศาสตร์พระราชาและประโยชน์เพื่อนมนุษย์",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 2 ความเป็นพลเมืองและชีวิตที่สันติ",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 5
+                      },
+                      {
+                        "name": "สาระที่ 3 การเป็นผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 1
+                      },
+                      {
+                        "name": "สาระที่ 4 การอยู่อย่างรู้เท่าทันและการรู้ดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 5 การคิดเชิงระบบการคิดเชิงตรรกะและตัวเลข",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 6 ภาษาและการสื่อสาร",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 7 สุนทรียศาสตร์และกีฬา",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "รายวิชาเลือก",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 93,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 39
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 54,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 33,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 36
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 21,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 18
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": null,
+                                    "requiredCredits": 18
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การจัดการไมซ์",
+                "shortName": "MICE",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categoriesRef": "FIN"
+              }
+            ]
+          },
+          {
+            "name": "หลักสูตรบริหารธุรกิจบัณฑิต",
+            "startYear": 2567,
+            "endYear": null,
+            "totalCredits": 129,
+            "geType": "NEW",
+            "majors": [
+              {
+                "name": "การเงินและการลงทุน",
+                "shortName": "FIN",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 36,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 42
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 21,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 15
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 6
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "SINGLE",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การตลาดและการสื่อสาร",
+                "shortName": "MKT",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 33,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 39
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 18
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": null,
+                                    "requiredCredits": 3
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การจัดการทรัพยากรมนุษย์",
+                "shortName": "HRM",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 30,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 36
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 27,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 21
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": null,
+                                    "requiredCredits": 6
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การจัดการโลจิสติกส์และโซ่อุปทาน",
+                "shortName": "LOG",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกและวิชาโท",
+                    "planType": "COOP",
+                    "trackType": "DUAL"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 36,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 39
+                              },
+                              {
+                                "planType": "COOP",
+                                "trackType": "DUAL",
+                                "requiredCredits": 39
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 21,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 18
+                              },
+                              {
+                                "planType": "COOP",
+                                "trackType": "DUAL",
+                                "requiredCredits": 18
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 6
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "SINGLE",
+                                    "requiredCredits": 18
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 3
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "ระบบสารสนเทศทางธุรกิจ",
+                "shortName": "BIS",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 33,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 33
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": null,
+                                "requiredCredits": 24
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": null,
+                                    "requiredCredits": 24
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              },
+              {
+                "name": "การจัดการไมซ์",
+                "shortName": "MICE",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 99,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 42
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 57,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 33,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 36
+                              }
+                            ]
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "planOverrides": [
+                              {
+                                "planType": "COOP",
+                                "trackType": "SINGLE",
+                                "requiredCredits": 21
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 9
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "SINGLE",
+                                    "requiredCredits": 21
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "การบัญชี",
+        "shortName": "ACC",
+        "curriculums": [
+          {
+            "name": "หลักสูตรบัญชีบัณฑิต",
+            "startYear": 2564,
+            "endYear": 2567,
+            "totalCredits": 128,
+            "geType": "OLD",
+            "majors": [
+              {
+                "name": "การบัญชี",
+                "shortName": "ACC",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกและวิชาโท",
+                    "planType": "COOP",
+                    "trackType": "DUAL"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 30,
+                    "children": [
+                      {
+                        "name": "สาระที่ 1 ศาสตร์พระราชาและประโยชน์เพื่อนมนุษย์",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 2 ความเป็นพลเมืองและชีวิตที่สันติ",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 5
+                      },
+                      {
+                        "name": "สาระที่ 3 การเป็นผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 1
+                      },
+                      {
+                        "name": "สาระที่ 4 การอยู่อย่างรู้เท่าทันและการรู้ดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 5 การคิดเชิงระบบการคิดเชิงตรรกะและตัวเลข",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 6 ภาษาและการสื่อสาร",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 7 สุนทรียศาสตร์และกีฬา",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "รายวิชาเลือก",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 92,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 20
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 72,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 48
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 9
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 9
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "หลักสูตรบัญชีบัณฑิต",
+            "startYear": 2568,
+            "endYear": null,
+            "totalCredits": 128,
+            "geType": "NEW",
+            "majors": [
+              {
+                "name": "การบัญชี",
+                "shortName": "ACC",
+                "plans": [
+                  {
+                    "name": "แผนปกติ วิชาเอกเดี่ยว",
+                    "planType": "REGULAR",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนปกติ วิชาเอกและวิชาโท",
+                    "planType": "REGULAR",
+                    "trackType": "DUAL"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกเดี่ยว",
+                    "planType": "COOP",
+                    "trackType": "SINGLE"
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา วิชาเอกและวิชาโท",
+                    "planType": "COOP",
+                    "trackType": "DUAL"
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 24,
+                    "children": [
+                      {
+                        "name": "GE 1 ภาษาและการสื่อสาร",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 2 การพัฒนาความคิด",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "GE 3 การคิดแบบผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 4 การใช้เทคโนโลยีดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 5 สุขภาวะองค์รวม",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 6 จิตสาธารณะและการพัฒนาที่ยั่งยืน",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 7 การปรับตัวให้เข้ากับพลวัตของโลก",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "GE 8 รายวิชาเลือกในหมวดวิชาศึกษาทั่วไป",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 98,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 23
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 75,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 51
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 24,
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 9
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 9
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true,
+                                "planOverrides": [
+                                  {
+                                    "planType": "REGULAR",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  },
+                                  {
+                                    "planType": "COOP",
+                                    "trackType": "DUAL",
+                                    "requiredCredits": 15
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "รัฐประศาสนศาสตร์",
+        "shortName": "PA",
+        "curriculums": [
+          {
+            "name": "หลักสูตรรัฐประศาสนศาสตรบัณฑิต",
+            "startYear": 2564,
+            "endYear": null,
+            "totalCredits": 129,
+            "geType": "OLD",
+            "majors": [
+              {
+                "name": "รัฐประศาสนศาสตร์",
+                "shortName": "PA",
+                "plans": [
+                  {
+                    "name": "แผนปกติ",
+                    "planType": "REGULAR",
+                    "trackType": null
+                  },
+                  {
+                    "name": "แผนสหกิจศึกษา",
+                    "planType": "COOP",
+                    "trackType": null
+                  }
+                ],
+                "categories": [
+                  {
+                    "name": "หมวดวิชาศึกษาทั่วไป",
+                    "code": "GEN_ED",
+                    "sortOrder": 1,
+                    "defaultCredits": 30,
+                    "children": [
+                      {
+                        "name": "สาระที่ 1 ศาสตร์พระราชาและประโยชน์เพื่อนมนุษย์",
+                        "code": "GE1",
+                        "sortOrder": 1,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 2 ความเป็นพลเมืองและชีวิตที่สันติ",
+                        "code": "GE2",
+                        "sortOrder": 2,
+                        "defaultCredits": 5
+                      },
+                      {
+                        "name": "สาระที่ 3 การเป็นผู้ประกอบการ",
+                        "code": "GE3",
+                        "sortOrder": 3,
+                        "defaultCredits": 1
+                      },
+                      {
+                        "name": "สาระที่ 4 การอยู่อย่างรู้เท่าทันและการรู้ดิจิทัล",
+                        "code": "GE4",
+                        "sortOrder": 4,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 5 การคิดเชิงระบบการคิดเชิงตรรกะและตัวเลข",
+                        "code": "GE5",
+                        "sortOrder": 5,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 6 ภาษาและการสื่อสาร",
+                        "code": "GE6",
+                        "sortOrder": 6,
+                        "defaultCredits": 4
+                      },
+                      {
+                        "name": "สาระที่ 7 สุนทรียศาสตร์และกีฬา",
+                        "code": "GE7",
+                        "sortOrder": 7,
+                        "defaultCredits": 2
+                      },
+                      {
+                        "name": "รายวิชาเลือก",
+                        "code": "GE_ELEC",
+                        "sortOrder": 8,
+                        "defaultCredits": 6,
+                        "isElective": true
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเฉพาะ",
+                    "code": "MAJOR",
+                    "sortOrder": 2,
+                    "defaultCredits": 93,
+                    "children": [
+                      {
+                        "name": "กลุ่มวิชาแกน",
+                        "code": "CORE",
+                        "sortOrder": 1,
+                        "defaultCredits": 48
+                      },
+                      {
+                        "name": "กลุ่มวิชาชีพ",
+                        "code": "PROF",
+                        "sortOrder": 2,
+                        "defaultCredits": 45,
+                        "children": [
+                          {
+                            "name": "วิชาชีพบังคับ",
+                            "code": "PROF_REQ",
+                            "sortOrder": 1,
+                            "defaultCredits": 18
+                          },
+                          {
+                            "name": "กลุ่มวิชาชีพเลือกและวิชาโท",
+                            "code": "PROF_ELEC_GROUP",
+                            "sortOrder": 2,
+                            "defaultCredits": 27,
+                            "children": [
+                              {
+                                "name": "วิชาชีพเลือก",
+                                "code": "PROF_ELEC",
+                                "sortOrder": 1,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              },
+                              {
+                                "name": "วิชาโท",
+                                "code": "MINOR",
+                                "sortOrder": 2,
+                                "defaultCredits": 0,
+                                "isElective": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "หมวดวิชาเลือกเสรี",
+                    "code": "FREE_ELEC",
+                    "sortOrder": 3,
+                    "defaultCredits": 6,
+                    "isElective": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

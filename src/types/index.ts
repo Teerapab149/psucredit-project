@@ -51,6 +51,7 @@ export interface MissingSubject {
 }
 
 export interface MatchResult {
+    curriculumYearId?: string;
     curriculumYear: number;
     curriculumName: string;
     categories: CategoryMatch[];

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -54,18 +55,41 @@ import {
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+interface Department {
+    id: string;
+    name: string;
+    shortName: string | null;
+}
+
+interface FacultyWithDepts {
+    id: string;
+    name: string;
+    shortName: string | null;
+    departments: Department[];
+}
+
 interface CurriculumYear {
     id: string;
     startYear: number | null;
     endYear: number | null;
     name: string;
-    faculty: string | null;
-    department: string | null;
+    departmentId: string | null;
     major: string | null;
     track: string | null;
     isActive: boolean;
     baseTemplateId?: string | null;
+    department?: { id: string; name: string; shortName: string | null; faculty?: { id: string; name: string } } | null;
 }
+
+// Majors for BBA department (บริหารธุรกิจ)
+const BBA_MAJORS = [
+    "ระบบสารสนเทศทางธุรกิจ",
+    "การจัดการโลจิสติกส์และโซ่อุปทาน",
+    "การจัดการทรัพยากรมนุษย์",
+    "การตลาด",
+    "การจัดการไมซ์",
+    "การเงินและการลงทุน",
+];
 
 export default function CurriculumsPage() {
     const router = useRouter();
@@ -73,8 +97,14 @@ export default function CurriculumsPage() {
     const currentTab = searchParams.get("type") || "template";
 
     const [years, setYears] = useState<CurriculumYear[]>([]);
+    const [faculties, setFaculties] = useState<FacultyWithDepts[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+    // Bulk Delete State
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
     // State for Clone Feature
     const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
@@ -86,9 +116,8 @@ export default function CurriculumsPage() {
         startYear: "" as number | "",
         endYear: "" as number | "",
         name: "",
-        faculty: "",
-        department: "",
-        major: "",
+        departmentId: "" as string,
+        major: "" as string,
         track: "",
         baseTemplateId: null as string | null,
         isTemplate: currentTab === "template",
@@ -99,8 +128,7 @@ export default function CurriculumsPage() {
         startYear: number | "";
         endYear: number | "";
         name: string;
-        faculty: string;
-        department: string;
+        departmentId: string;
         major: string;
         track: string;
         baseTemplateId: string | null;
@@ -121,9 +149,28 @@ export default function CurriculumsPage() {
         }
     }, []);
 
+    const fetchFaculties = useCallback(async () => {
+        try {
+            const res = await fetch("/api/admin/departments");
+            if (res.ok) {
+                const data = await res.json();
+                setFaculties(data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchYears();
-    }, [fetchYears]);
+        fetchFaculties();
+    }, [fetchYears, fetchFaculties]);
+
+    // Derived: find the selected department to check if it's BBA
+    const selectedDepartment = faculties
+        .flatMap((f) => f.departments)
+        .find((d) => d.id === curriculumForm.departmentId);
+    const isBBA = selectedDepartment?.shortName === "BBA" || selectedDepartment?.name === "บริหารธุรกิจ";
 
     const handleSheetClose = (open: boolean) => {
         setIsSheetOpen(open);
@@ -163,14 +210,52 @@ export default function CurriculumsPage() {
         }
     };
 
+    const toggleSelectAll = (ids: string[]) => {
+        const allSelected = ids.length > 0 && ids.every(id => selectedIds.includes(id));
+        if (allSelected) {
+            setSelectedIds(selectedIds.filter(id => !ids.includes(id)));
+        } else {
+            const newIds = new Set([...selectedIds, ...ids]);
+            setSelectedIds(Array.from(newIds));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setIsDeletingBulk(true);
+        try {
+            const res = await fetch("/api/admin/curriculum/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: selectedIds }),
+            });
+            if (res.ok) {
+                toast.success(`Deleted ${selectedIds.length} items successfully`);
+                setSelectedIds([]);
+                setIsSelectMode(false);
+                fetchYears();
+            } else {
+                toast.error("Failed to delete items");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("An error occurred during bulk deletion");
+        } finally {
+            setIsDeletingBulk(false);
+        }
+    };
+
     const openEditDialog = (curriculum: CurriculumYear & { isTemplate?: boolean }) => {
         setCurriculumForm({
             id: curriculum.id,
             name: curriculum.name,
             startYear: curriculum.startYear || "",
             endYear: curriculum.endYear || "",
-            faculty: curriculum.faculty || "",
-            department: curriculum.department || "",
+            departmentId: curriculum.departmentId || "",
             major: curriculum.major || "",
             track: curriculum.track || "",
             baseTemplateId: curriculum.baseTemplateId || null,
@@ -185,8 +270,7 @@ export default function CurriculumsPage() {
             name: `${source.name} (Copy)`,
             startYear: source.startYear || "",
             endYear: source.endYear || "",
-            faculty: source.faculty || "",
-            department: source.department || "",
+            departmentId: source.departmentId || "",
             major: source.major || "",
             track: source.track || "",
             baseTemplateId: source.baseTemplateId || null,
@@ -226,19 +310,19 @@ export default function CurriculumsPage() {
 
     // Helpers to filter data by tab
     const templates = years.filter((y: any) => y.isTemplate);
-    const faculties = years.filter((y: any) => !y.isTemplate);
+    const facultyCurriculums = years.filter((y: any) => !y.isTemplate);
 
     // Group faculties for Accordion
-    const groupByFaculty = (list: CurriculumYear[]) => {
-        const groups: Record<string, CurriculumYear[]> = {};
+    const groupByFaculty = (list: any[]) => {
+        const groups: Record<string, any[]> = {};
         list.forEach(item => {
-            const facultyName = item.faculty || "Other/Unassigned";
+            const facultyName = item.department?.faculty?.name || "Other/Unassigned";
             if (!groups[facultyName]) groups[facultyName] = [];
             groups[facultyName].push(item);
         });
         return groups;
     };
-    const groupedFaculties = groupByFaculty(faculties);
+    const groupedFaculties = groupByFaculty(facultyCurriculums);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -248,6 +332,54 @@ export default function CurriculumsPage() {
                     <p className="text-sm text-slate-500 mt-1">
                         Manage university master templates and specific faculty curriculums.
                     </p>
+                </div>
+
+                <div className="flex gap-2">
+                    {isSelectMode ? (
+                        <>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => { setIsSelectMode(false); setSelectedIds([]); }}
+                            >
+                                Cancel Select
+                            </Button>
+                            {selectedIds.length > 0 && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" disabled={isDeletingBulk}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Selected ({selectedIds.length})
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete {selectedIds.length} items?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will permanently delete the selected curriculums and templates along with all their categories and structures. This action cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                                onClick={handleBulkDelete}
+                                                className="bg-red-600 hover:bg-red-700 text-white"
+                                            >
+                                                {isDeletingBulk ? "Deleting..." : "Confirm Delete"}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
+                        </>
+                    ) : (
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setIsSelectMode(true)}
+                            className="bg-white"
+                        >
+                            Select Mode
+                        </Button>
+                    )}
                 </div>
 
                 <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
@@ -301,44 +433,68 @@ export default function CurriculumsPage() {
                                 </div>
                             </div>
                             {currentTab === "faculty" && (
-                                <>
+                                <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700">Faculty (Opt.)</Label>
-                                        <Input
-                                            placeholder='e.g. "วิทยาการจัดการ"'
-                                            value={curriculumForm.faculty}
-                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, faculty: e.target.value })}
-                                            className="focus-visible:ring-blue-500"
-                                        />
+                                        <Label className="text-slate-700">Department <span className="text-red-500">*</span></Label>
+                                        <Select
+                                            value={curriculumForm.departmentId || "none"}
+                                            onValueChange={(val) => {
+                                                const newDeptId = val === "none" ? "" : val;
+                                                const dept = faculties.flatMap(f => f.departments).find(d => d.id === newDeptId);
+                                                const needsMajor = dept?.shortName === "BBA" || dept?.name === "บริหารธุรกิจ";
+                                                setCurriculumForm({
+                                                    ...curriculumForm,
+                                                    departmentId: newDeptId,
+                                                    major: needsMajor ? curriculumForm.major : "",
+                                                });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select Department" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">-- Select Department --</SelectItem>
+                                                {faculties.map((faculty) => (
+                                                    faculty.departments.map((dept) => (
+                                                        <SelectItem key={dept.id} value={dept.id}>
+                                                            {faculty.name} / {dept.name}
+                                                        </SelectItem>
+                                                    ))
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-700">Department (Opt.)</Label>
-                                        <Input
-                                            placeholder='e.g. "บริหารธุรกิจ"'
-                                            value={curriculumForm.department}
-                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, department: e.target.value })}
-                                            className="focus-visible:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-700">Major (Opt.)</Label>
-                                        <Input
-                                            placeholder='e.g. "ระบบสารสนเทศทางธุรกิจ"'
-                                            value={curriculumForm.major}
-                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, major: e.target.value })}
-                                            className="focus-visible:ring-blue-500"
-                                        />
-                                    </div>
+
+                                    {isBBA && (
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-700">Major <span className="text-red-500">*</span></Label>
+                                            <Select
+                                                value={curriculumForm.major || "none"}
+                                                onValueChange={(val) => setCurriculumForm({ ...curriculumForm, major: val === "none" ? "" : val })}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select Major" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">-- Select Major --</SelectItem>
+                                                    {BBA_MAJORS.map((m) => (
+                                                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">Track (Opt.)</Label>
                                         <Input
-                                            placeholder='e.g. "ปกติ"'
+                                            placeholder='e.g. "แผนปกติ"'
                                             value={curriculumForm.track}
                                             onChange={(e) => setCurriculumForm({ ...curriculumForm, track: e.target.value })}
                                             className="focus-visible:ring-blue-500"
                                         />
                                     </div>
-                                </>
+                                </div>
                             )}
 
                             {currentTab === "faculty" && (
@@ -413,22 +569,6 @@ export default function CurriculumsPage() {
                                             type="number" className="h-8 text-sm"
                                             value={curriculumForm.startYear}
                                             onChange={(e) => setCurriculumForm({ ...curriculumForm, startYear: e.target.value === "" ? "" : parseInt(e.target.value) })}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-600 text-xs">Major</Label>
-                                        <Input
-                                            className="h-8 text-sm"
-                                            value={curriculumForm.major}
-                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, major: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-600 text-xs">Department</Label>
-                                        <Input
-                                            className="h-8 text-sm"
-                                            value={curriculumForm.department}
-                                            onChange={(e) => setCurriculumForm({ ...curriculumForm, department: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -516,6 +656,14 @@ export default function CurriculumsPage() {
                             <Table>
                                 <TableHeader className="bg-slate-50/50">
                                     <TableRow className="hover:bg-transparent">
+                                        {isSelectMode && (
+                                            <TableHead className="w-[40px]">
+                                                <Checkbox 
+                                                    checked={templates.length > 0 && templates.every(t => selectedIds.includes(t.id))}
+                                                    onCheckedChange={() => toggleSelectAll(templates.map(t => t.id))}
+                                                />
+                                            </TableHead>
+                                        )}
                                         <TableHead className="w-[30%] font-medium text-slate-600">Template Name</TableHead>
                                         <TableHead className="font-medium text-slate-600">Active Years</TableHead>
                                         <TableHead className="font-medium text-slate-600">Status</TableHead>
@@ -525,13 +673,21 @@ export default function CurriculumsPage() {
                                 <TableBody>
                                     {templates.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                                            <TableCell colSpan={isSelectMode ? 5 : 4} className="text-center py-8 text-slate-500">
                                                 No master templates found.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         templates.map((y) => (
-                                            <TableRow key={y.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <TableRow key={y.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(y.id) ? "bg-slate-50" : ""}`}>
+                                                {isSelectMode && (
+                                                    <TableCell>
+                                                        <Checkbox 
+                                                            checked={selectedIds.includes(y.id)}
+                                                            onCheckedChange={() => toggleSelect(y.id)}
+                                                        />
+                                                    </TableCell>
+                                                )}
                                                 <TableCell>
                                                     <div className="font-medium text-slate-900">{y.name}</div>
                                                 </TableCell>
@@ -560,6 +716,15 @@ export default function CurriculumsPage() {
                                                         onClick={() => router.push(`/admin/categories?id=${y.id}`)}
                                                     >
                                                         Manage <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        title="Manage plans"
+                                                        className="h-8 text-xs text-violet-600 border-violet-200 hover:bg-violet-50 mr-1"
+                                                        onClick={() => router.push(`/admin/curriculums/${y.id}/plans`)}
+                                                    >
+                                                        Plans
                                                     </Button>
                                                     <Button variant="ghost" size="icon" title="Edit Template" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
                                                         <Pencil className="h-4 w-4" />
@@ -632,6 +797,14 @@ export default function CurriculumsPage() {
                                                 <Table>
                                                     <TableHeader className="bg-slate-50/50">
                                                         <TableRow className="hover:bg-transparent">
+                                                            {isSelectMode && (
+                                                                <TableHead className="w-[40px]">
+                                                                    <Checkbox 
+                                                                        checked={facultyList.length > 0 && facultyList.every(t => selectedIds.includes(t.id))}
+                                                                        onCheckedChange={() => toggleSelectAll(facultyList.map(t => t.id))}
+                                                                    />
+                                                                </TableHead>
+                                                            )}
                                                             <TableHead className="w-[35%] font-medium text-slate-600">Curriculum Name</TableHead>
                                                             <TableHead className="font-medium text-slate-600">Active Years</TableHead>
                                                             <TableHead className="font-medium text-slate-600">Major / Track</TableHead>
@@ -641,7 +814,15 @@ export default function CurriculumsPage() {
                                                     </TableHeader>
                                                     <TableBody>
                                                         {facultyList.map((y) => (
-                                                            <TableRow key={y.id} className="hover:bg-slate-50/50 transition-colors">
+                                                            <TableRow key={y.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(y.id) ? "bg-slate-50" : ""}`}>
+                                                                {isSelectMode && (
+                                                                    <TableCell>
+                                                                        <Checkbox 
+                                                                            checked={selectedIds.includes(y.id)}
+                                                                            onCheckedChange={() => toggleSelect(y.id)}
+                                                                        />
+                                                                    </TableCell>
+                                                                )}
                                                                 <TableCell>
                                                                     <div className="font-medium text-slate-900">{y.name}</div>
                                                                     {y.baseTemplateId && (
@@ -661,9 +842,10 @@ export default function CurriculumsPage() {
                                                                 </TableCell>
                                                                 <TableCell>
                                                                     <div className="text-sm">
-                                                                        {y.major && <div className="text-slate-700">Major: {y.major}</div>}
+                                                                        {(y as any).department?.name && <div className="text-slate-700">{(y as any).department.name}</div>}
+                                                                        {(y as any).major && <div className="text-slate-600 text-xs">{(y as any).major}</div>}
                                                                         {y.track && <div className="text-slate-500 mt-0.5 text-xs">Track: {y.track}</div>}
-                                                                        {!y.major && !y.track && <span className="text-slate-300">-</span>}
+                                                                        {!(y as any).department?.name && !(y as any).major && !y.track && <span className="text-slate-300">-</span>}
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>
@@ -682,6 +864,15 @@ export default function CurriculumsPage() {
                                                                         onClick={() => router.push(`/admin/categories?id=${y.id}`)}
                                                                     >
                                                                         Manage <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        title="Manage plans"
+                                                                        className="h-8 text-xs text-violet-600 border-violet-200 hover:bg-violet-50 mr-1"
+                                                                        onClick={() => router.push(`/admin/curriculums/${y.id}/plans`)}
+                                                                    >
+                                                                        Plans
                                                                     </Button>
                                                                     <Button variant="ghost" size="icon" title="Edit Curriculum" onClick={() => openEditDialog(y)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 h-8 w-8">
                                                                         <Pencil className="h-4 w-4" />

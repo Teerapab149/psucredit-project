@@ -45,6 +45,7 @@ export function SubjectBankModal({
     const [catalog, setCatalog] = useState<MasterSubjectItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedGroup, setSelectedGroup] = useState<string>("all");
+    const [selectedTag, setSelectedTag] = useState<string>("all");
     // Selection stored by masterSubject.id (not code)
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [existingCodesInCategory, setExistingCodesInCategory] = useState<Set<string>>(new Set());
@@ -81,6 +82,7 @@ export function SubjectBankModal({
         setSelectedIds(new Set());
         setSearchQuery("");
         setSelectedGroup("all");
+        setSelectedTag("all");
     }, [isOpen, categoryId]);
 
     // ── Derived data ─────────────────────────────────────────────────────────
@@ -88,6 +90,12 @@ export function SubjectBankModal({
     const groups = useMemo(() => {
         const seen = new Set<string>();
         catalog.forEach(s => { if (s.subjectGroup) seen.add(s.subjectGroup); });
+        return Array.from(seen).sort();
+    }, [catalog]);
+
+    const allTags = useMemo(() => {
+        const seen = new Set<string>();
+        catalog.forEach(s => s.tags?.forEach(t => seen.add(t)));
         return Array.from(seen).sort();
     }, [catalog]);
 
@@ -108,6 +116,10 @@ export function SubjectBankModal({
             );
         }
 
+        if (selectedTag !== "all") {
+            list = list.filter(s => s.tags?.includes(selectedTag));
+        }
+
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             list = list.filter(
@@ -116,7 +128,7 @@ export function SubjectBankModal({
         }
 
         return list;
-    }, [catalog, searchQuery, selectedGroup]);
+    }, [catalog, searchQuery, selectedGroup, selectedTag]);
 
     // Only importable (not already in category)
     const importableCatalog = useMemo(
@@ -190,7 +202,7 @@ export function SubjectBankModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[700px] flex flex-col max-h-[90vh]">
+            <DialogContent className="sm:max-w-[850px] flex flex-col max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle className="text-xl flex items-center gap-2">
                         <Download className="h-5 w-5 text-blue-600" />
@@ -213,9 +225,9 @@ export function SubjectBankModal({
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                         <select
-                            className="flex h-9 w-full sm:w-[180px] rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
+                            className="flex h-9 w-full sm:w-[160px] rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
                             value={selectedGroup}
                             onChange={(e) => setSelectedGroup(e.target.value)}
                         >
@@ -225,6 +237,18 @@ export function SubjectBankModal({
                             ))}
                             <option value="__none">(No Group)</option>
                         </select>
+                        {allTags.length > 0 && (
+                            <select
+                                className="flex h-9 w-full sm:w-[140px] rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950"
+                                value={selectedTag}
+                                onChange={(e) => setSelectedTag(e.target.value)}
+                            >
+                                <option value="all">All Tags</option>
+                                {allTags.map(t => (
+                                    <option key={t} value={t}>{t}</option>
+                                ))}
+                            </select>
+                        )}
                         <Badge variant="outline" className="h-9 px-3 font-normal shrink-0">
                             Selected: <strong className="ml-1 text-blue-600">{selectedIds.size}</strong>
                         </Badge>
@@ -257,6 +281,7 @@ export function SubjectBankModal({
                                     <th className="px-4 py-2 text-left font-medium text-slate-500">Code</th>
                                     <th className="px-4 py-2 text-left font-medium text-slate-500">Name</th>
                                     <th className="px-4 py-2 text-left font-medium text-slate-500">Group</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-500">Tags</th>
                                     <th className="px-4 py-2 text-center font-medium text-slate-500">Credits</th>
                                 </tr>
                             </thead>
@@ -297,6 +322,23 @@ export function SubjectBankModal({
                                             </td>
                                             <td className="px-4 py-2 text-slate-500 text-xs">
                                                 {subject.subjectGroup || <span className="text-slate-300">—</span>}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {subject.tags?.length > 0 ? (
+                                                        subject.tags.map(tag => (
+                                                            <Badge
+                                                                key={tag}
+                                                                variant="secondary"
+                                                                className="text-[10px] px-1.5 py-0 font-normal"
+                                                            >
+                                                                {tag}
+                                                            </Badge>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-slate-300 text-xs">—</span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-2 text-center text-slate-500">
                                                 {subject.credits}

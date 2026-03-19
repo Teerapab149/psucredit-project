@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Search, Database, Trash2, Edit, Tag, AlertTriangle, RefreshCw, Check, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Search, Database, Trash2, Edit, Tag, AlertTriangle, RefreshCw, Check, ChevronsUpDown, X, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
     Table,
@@ -38,6 +39,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     Command,
@@ -48,6 +50,7 @@ import {
     CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
+import { BulkImportModal } from "@/components/admin/BulkImportModal";
 
 interface MasterSubject {
     id: string;
@@ -78,7 +81,12 @@ export default function SubjectDatabasePage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isMigrating, setIsMigrating] = useState(false);
+    const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [unlinkedCount, setUnlinkedCount] = useState<number | null>(null);
+
+    // Bulk Delete State
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
     const [form, setForm] = useState(emptyForm);
 
@@ -240,6 +248,44 @@ export default function SubjectDatabasePage() {
         }
     };
 
+    const toggleSelectAll = (ids: string[]) => {
+        const allSelected = ids.length > 0 && ids.every(id => selectedIds.includes(id));
+        if (allSelected) {
+            setSelectedIds(selectedIds.filter(id => !ids.includes(id)));
+        } else {
+            const newIds = new Set([...selectedIds, ...ids]);
+            setSelectedIds(Array.from(newIds));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setIsDeletingBulk(true);
+        try {
+            const res = await fetch("/api/admin/master-subjects/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: selectedIds }),
+            });
+            if (res.ok) {
+                toast.success(`Removed ${selectedIds.length} subjects from bank`);
+                setSelectedIds([]);
+                fetchSubjects();
+            } else {
+                toast.error("Failed to delete subjects");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("An error occurred during bulk deletion");
+        } finally {
+            setIsDeletingBulk(false);
+        }
+    };
+
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
@@ -255,12 +301,48 @@ export default function SubjectDatabasePage() {
                         The global master bank of all subjects. Import from here into any curriculum category.
                     </p>
                 </div>
-                <Button
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                    onClick={openCreate}
-                >
-                    <Plus className="mr-2 h-4 w-4" /> Add to Bank
-                </Button>
+                <div className="flex gap-2">
+                    {selectedIds.length > 0 && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isDeletingBulk} className="shadow-sm">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Selected ({selectedIds.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove {selectedIds.length} subjects from Bank?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently remove the selected subjects from the global master bank. Subjects already imported into curricula will not be affected.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                        onClick={handleBulkDelete}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                    >
+                                        {isDeletingBulk ? "Removing..." : "Remove All"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                    <Button
+                        variant="outline"
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 shadow-sm"
+                        onClick={() => setIsBulkOpen(true)}
+                    >
+                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Bulk Import CSV
+                    </Button>
+                    <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        onClick={openCreate}
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> Add to Bank
+                    </Button>
+                </div>
             </div>
 
             {/* Migration banner — shown only while unlinked subjects exist */}
@@ -348,7 +430,13 @@ export default function SubjectDatabasePage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-slate-100">
-                                    <TableHead className="h-10 pl-6 w-[130px] text-xs font-semibold uppercase tracking-wider text-slate-500">Code</TableHead>
+                                    <TableHead className="w-[40px] pl-4">
+                                        <Checkbox 
+                                            checked={filtered.length > 0 && filtered.every(s => selectedIds.includes(s.id))}
+                                            onCheckedChange={() => toggleSelectAll(filtered.map(s => s.id))}
+                                        />
+                                    </TableHead>
+                                    <TableHead className="h-10 w-[130px] text-xs font-semibold uppercase tracking-wider text-slate-500">Code</TableHead>
                                     <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-slate-500">Name</TableHead>
                                     <TableHead className="h-10 w-[160px] text-xs font-semibold uppercase tracking-wider text-slate-500">Group</TableHead>
                                     <TableHead className="h-10 text-xs font-semibold uppercase tracking-wider text-slate-500">Tags</TableHead>
@@ -358,8 +446,14 @@ export default function SubjectDatabasePage() {
                             </TableHeader>
                             <TableBody>
                                 {filtered.map((s) => (
-                                    <TableRow key={s.id} className="hover:bg-slate-50/70 transition-colors border-slate-100">
-                                        <TableCell className="pl-6 py-3 font-mono text-[12px] font-bold text-slate-600">
+                                    <TableRow key={s.id} className={`hover:bg-slate-50/70 transition-colors border-slate-100 ${selectedIds.includes(s.id) ? "bg-slate-50" : ""}`}>
+                                        <TableCell className="pl-4">
+                                            <Checkbox 
+                                                checked={selectedIds.includes(s.id)}
+                                                onCheckedChange={() => toggleSelect(s.id)}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="py-3 font-mono text-[12px] font-bold text-slate-600">
                                             {s.code}
                                         </TableCell>
                                         <TableCell className="py-3 text-[13px] font-medium text-slate-800">
@@ -636,6 +730,13 @@ export default function SubjectDatabasePage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* ── Bulk Import Modal ──────────────────────────────────────────── */}
+            <BulkImportModal
+                isOpen={isBulkOpen}
+                onClose={() => setIsBulkOpen(false)}
+                onSuccess={fetchSubjects}
+            />
 
             {/* ── Delete Confirmation ─────────────────────────────────────────── */}
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

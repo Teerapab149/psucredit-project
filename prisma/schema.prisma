@@ -19,6 +19,8 @@ model User {
   updatedAt        DateTime        @updatedAt
   userSubjects     UserSubject[]
   studyPlans       StudyPlan[] // เพิ่ม: รองรับฟีเจอร์ Saved Plan
+  planId           String?
+  plan             CurriculumPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
 }
 
 enum Role {
@@ -26,23 +28,46 @@ enum Role {
   ADMIN
 }
 
+model Faculty {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  shortName   String?
+  departments Department[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Department {
+  id              String           @id @default(cuid())
+  name            String
+  shortName       String?
+  facultyId       String
+  faculty         Faculty          @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  curriculumYears CurriculumYear[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([name, facultyId])
+}
+
 model CurriculumYear {
-  id         String  @id @default(cuid())
-  startYear  Int?
-  endYear    Int?
-  name       String
-  faculty    String?
-  department String?
-  major      String?
-  track      String?
-  isActive   Boolean @default(true)
-  isTemplate Boolean @default(false)
+  id           String      @id @default(cuid())
+  startYear    Int?
+  endYear      Int?
+  name         String
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  major        String?
+  track        String?
+  isActive     Boolean     @default(true)
+  isTemplate   Boolean     @default(false)
 
   baseTemplateId   String?
   baseTemplate     CurriculumYear?  @relation("TemplateRelation", fields: [baseTemplateId], references: [id])
   derivedTemplates CurriculumYear[] @relation("TemplateRelation")
 
   categories CurriculumCategory[]
+  plans      CurriculumPlan[]
   users      User[]
   createdAt  DateTime             @default(now())
   updatedAt  DateTime             @updatedAt
@@ -64,6 +89,7 @@ model CurriculumCategory {
   curriculumYear          CurriculumYear       @relation(fields: [curriculumYearId], references: [id], onDelete: Cascade)
   curriculumYearId        String
   subjects                Subject[]
+  planRequirements        PlanCategoryRequirement[]
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
 }
@@ -142,8 +168,41 @@ enum SubjectStatus {
 }
 
 enum SpilloverType {
+  GE_ELECTIVE
   MINOR
   FREE_ELECTIVE
+}
+
+enum PlanType {
+  REGULAR
+  COOP
+}
+
+enum TrackType {
+  SINGLE
+  DUAL
+}
+
+model CurriculumPlan {
+  id               String                   @id @default(cuid())
+  name             String
+  planType         PlanType
+  trackType        TrackType?
+  curriculumYearId String
+  curriculumYear   CurriculumYear           @relation(fields: [curriculumYearId], references: [id], onDelete: Cascade)
+  requirements     PlanCategoryRequirement[]
+  users            User[]
+}
+
+model PlanCategoryRequirement {
+  id              String             @id @default(cuid())
+  planId          String
+  categoryId      String
+  requiredCredits Int
+  plan            CurriculumPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  category        CurriculumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, categoryId])
 }
 
 model SubjectEquivalency {

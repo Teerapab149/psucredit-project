@@ -22,20 +22,28 @@ import {
     ChevronRight,
     BookOpen,
     ListChecks,
+    RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useCreditStore } from "@/store/credit-store";
 import type { MatchResult, CategoryMatch } from "@/types";
+
+interface CurriculumPlan {
+    id: string;
+    name: string;
+    planType: string;
+    trackType: string | null;
+    curriculumYearId: string;
+}
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#ef4444", "#94a3b8"];
 
@@ -67,9 +75,8 @@ function CategoryCard({
             transition={{ delay: depth * 0.1 }}
             className={depth > 0 ? "ml-4 mt-3" : ""}
         >
-            <Card className={`border-0 shadow-md transition-all hover:shadow-lg ${
-                isPassed ? "bg-emerald-50/40 border-l-4 border-l-emerald-500" : "bg-white"
-            }`}>
+            <Card className={`border-0 shadow-md transition-all hover:shadow-lg ${isPassed ? "bg-emerald-50/40 border-l-4 border-l-emerald-500" : "bg-white"
+                }`}>
                 {/* ── Category header ── */}
                 <CardHeader
                     className="cursor-pointer pb-3"
@@ -144,21 +151,21 @@ function CategoryCard({
                                                     {s.status === "COMPLETED"
                                                         ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                                                         : s.status === "IN_PROGRESS"
-                                                        ? <Clock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                                                        : <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                                                            ? <Clock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                                            : <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
                                                     }
+
                                                     <span className="font-mono text-xs text-slate-400 shrink-0">{s.code}</span>
                                                     <span className="text-slate-700 truncate">{s.name}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                                     <Badge variant="outline" className="text-xs">{s.credits} cr.</Badge>
                                                     {s.grade && (
-                                                        <Badge className={`text-xs ${
-                                                            s.grade === "A" ? "bg-emerald-100 text-emerald-700"
-                                                            : s.grade.startsWith("B") ? "bg-blue-100 text-blue-700"
-                                                            : s.grade.startsWith("C") ? "bg-amber-100 text-amber-700"
-                                                            : "bg-red-100 text-red-700"
-                                                        }`}>
+                                                        <Badge className={`text-xs ${s.grade === "A" ? "bg-emerald-100 text-emerald-700"
+                                                                : s.grade.startsWith("B") ? "bg-blue-100 text-blue-700"
+                                                                    : s.grade.startsWith("C") ? "bg-amber-100 text-amber-700"
+                                                                        : "bg-red-100 text-red-700"
+                                                            }`}>
                                                             {s.grade}
                                                         </Badge>
                                                     )}
@@ -172,20 +179,17 @@ function CategoryCard({
 
                         {/* ── Missing / Course catalogue (collapsible) ── */}
                         {category.missingSubjects.length > 0 && (
-                            <div className={`rounded-lg border overflow-hidden ${
-                                isPassed ? "border-slate-100" : "border-red-100"
-                            }`}>
+                            <div className={`rounded-lg border overflow-hidden ${isPassed ? "border-slate-100" : "border-red-100"
+                                }`}>
                                 <button
-                                    className={`w-full flex items-center justify-between px-3 py-2 transition-colors text-left ${
-                                        isPassed
+                                    className={`w-full flex items-center justify-between px-3 py-2 transition-colors text-left ${isPassed
                                             ? "bg-slate-50 hover:bg-slate-100"
                                             : "bg-red-50/60 hover:bg-red-50"
-                                    }`}
+                                        }`}
                                     onClick={(e) => { e.stopPropagation(); setMissingOpen(!missingOpen); }}
                                 >
-                                    <span className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wide ${
-                                        isPassed ? "text-slate-500" : "text-red-600"
-                                    }`}>
+                                    <span className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wide ${isPassed ? "text-slate-500" : "text-red-600"
+                                        }`}>
                                         <BookOpen className={`h-3.5 w-3.5 ${isPassed ? "text-slate-400" : "text-red-400"}`} />
                                         {isPassed
                                             ? `Course catalogue — ${category.missingSubjects.length} subjects available`
@@ -234,8 +238,53 @@ export default function ResultsPage() {
         useCreditStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedTrack, setSelectedTrack] = useState<string>("แผนปกติ");
+    const [plans, setPlans] = useState<CurriculumPlan[]>([]);
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const [selectedPlanName, setSelectedPlanName] = useState<string | null>(null);
+    const [showPlanModal, setShowPlanModal] = useState(false);
+    const [plansLoaded, setPlansLoaded] = useState(false);
 
+    // Fetch available plans when we have a match result with curriculumYear info
+    useEffect(() => {
+        if (!matchResult || plansLoaded) return;
+
+        const fetchPlans = async () => {
+            try {
+                // We need the curriculumYearId — fetch it from the match result's first category
+                // or re-derive it. For now, use the API with curriculum name lookup.
+                const res = await fetch("/api/curriculum-plans?curriculumYearId=" + encodeURIComponent(
+                    (matchResult as any).curriculumYearId || ""
+                ));
+                if (!res.ok) return;
+                const data: CurriculumPlan[] = await res.json();
+                setPlans(data);
+
+                // Check localStorage for anonymous users
+                const storedPlanId = localStorage.getItem("selectedPlanId");
+
+                if (data.length === 1) {
+                    // Auto-select the only plan
+                    setSelectedPlanId(data[0].id);
+                    setSelectedPlanName(data[0].name);
+                } else if (data.length > 1) {
+                    if (storedPlanId && data.find(p => p.id === storedPlanId)) {
+                        setSelectedPlanId(storedPlanId);
+                        setSelectedPlanName(data.find(p => p.id === storedPlanId)!.name);
+                    } else {
+                        // Show modal to pick plan
+                        setShowPlanModal(true);
+                    }
+                }
+                setPlansLoaded(true);
+            } catch {
+                // Plans are optional — don't block the page
+            }
+        };
+
+        fetchPlans();
+    }, [matchResult, plansLoaded]);
+
+    // Re-fetch match results when plan changes
     useEffect(() => {
         if (verifiedSubjects.length === 0) return;
 
@@ -248,7 +297,7 @@ export default function ResultsPage() {
                     body: JSON.stringify({
                         subjects: verifiedSubjects,
                         studentInfo: studentInfo,
-                        track: selectedTrack
+                        planId: selectedPlanId,
                     }),
                 });
                 const data: MatchResult = await res.json();
@@ -261,7 +310,15 @@ export default function ResultsPage() {
         };
 
         fetchResults();
-    }, [verifiedSubjects, studentInfo, selectedTrack, setMatchResult]);
+    }, [verifiedSubjects, studentInfo, selectedPlanId, setMatchResult]);
+
+    const handleSelectPlan = (plan: CurriculumPlan) => {
+        setSelectedPlanId(plan.id);
+        setSelectedPlanName(plan.name);
+        localStorage.setItem("selectedPlanId", plan.id);
+        setShowPlanModal(false);
+        // Reset plansLoaded so it doesn't re-trigger plan fetch
+    };
 
     if (verifiedSubjects.length === 0 && !matchResult) {
         return (
@@ -293,7 +350,7 @@ export default function ResultsPage() {
                 >
                     <div className="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
                     <p className="text-lg font-medium text-slate-700">
-                        Analyzing '{selectedTrack}' curriculum...
+                        Analyzing curriculum...
                     </p>
                 </motion.div>
             </div>
@@ -301,7 +358,7 @@ export default function ResultsPage() {
     }
 
     const data = matchResult;
-    if (!data) return null;
+    if (!data || !data.categories) return null;
 
     if (data.curriculumName === "No curriculum found") {
         return (
@@ -374,15 +431,22 @@ export default function ResultsPage() {
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
-                            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
-                                <SelectTrigger className="w-[180px] bg-white border-slate-200">
-                                    <SelectValue placeholder="Select Track" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="แผนปกติ">แผนปกติ (Normal Plan)</SelectItem>
-                                    <SelectItem value="แผนสหกิจศึกษา">แผนสหกิจศึกษา (Co-op Plan)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            {plans.length > 0 && selectedPlanName && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-slate-600">{selectedPlanName}</span>
+                                    {plans.length > 1 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-xs text-blue-600 hover:text-blue-700 gap-1 h-7 px-2"
+                                            onClick={() => setShowPlanModal(true)}
+                                        >
+                                            <RefreshCw className="h-3 w-3" />
+                                            เปลี่ยนแผน
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                             <Button
                                 variant="outline"
                                 onClick={() => router.push("/verify")}
@@ -651,6 +715,35 @@ export default function ResultsPage() {
                     )}
                 </motion.div>
             </div>
+
+            {/* Plan Selection Modal */}
+            <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>เลือกแผนการเรียน</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-4">
+                        {plans.map((plan) => (
+                            <Button
+                                key={plan.id}
+                                variant={selectedPlanId === plan.id ? "default" : "outline"}
+                                className="justify-start h-auto py-3 px-4"
+                                onClick={() => handleSelectPlan(plan)}
+                            >
+                                <div className="text-left">
+                                    <div className="font-medium">{plan.name}</div>
+                                    <div className="text-xs opacity-70 mt-0.5">
+                                        {plan.planType === "REGULAR" ? "แผนปกติ" : "แผนสหกิจ"}
+                                        {plan.trackType && (
+                                            <span> / {plan.trackType === "SINGLE" ? "เอกเดี่ยว" : "เอกคู่"}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </Button>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

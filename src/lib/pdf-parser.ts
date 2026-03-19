@@ -263,16 +263,19 @@ export function parseStudentInfo(rawText: string): StudentInfo | null {
     const department = rawDept ? "ภาควิชา" + translateTerm(rawDept) : "";
 
     // ── Major & Track ──────────────────────────────────────────────────────────
-    // Thai:    สาขาวิชา<term> or สาขา<term>, optional (track) in parens
-    // English: <Major Name> (<Track Name>)  — appears after Faculty/Department line
-    //          e.g. "Business Administration (Business Information System)"
-    const majorMatchTh = text.match(/(?:สาขาวิชา|สาขา)([^\s(]+)/);
-    const trackMatchTh = text.match(/(?:สาขาวิชา|สาขา)[^\s(]+\s*\((.+?)\)/);
+    // Thai PDF format examples:
+    //   "สาขาบริหารธุรกิจ (ระบบสารสนเทศทางธุรกิจ)"  → major = ระบบสารสนเทศทางธุรกิจ
+    //   "สาขาวิชาการบัญชี"                            → major = การบัญชี
+    //   "สาขารัฐประศาสนศาสตร์"                        → major = รัฐประศาสนศาสตร์
+    // English:
+    //   "Business Administration (Business Information System)" → major = สารสนเทศทางธุรกิจ
+
+    // Thai: capture the base term and optional parenthesized sub-major
+    // Handles both normal () and full-width （）parentheses from PDF
+    const majorMatchTh = text.match(/(?:สาขาวิชา|สาขา)([^\s(\uff08]+)/);
+    const parenMatchTh = text.match(/(?:สาขาวิชา|สาขา)[^\s(\uff08]+\s*[(\uff08]([^)\uff09]+)[)\uff09]/);
 
     // English: a known academic term optionally followed by (another term).
-    // The negative lookbehind (?<! of ) skips terms that appear inside
-    // "Faculty of ..." or "Department of ..." lines, so we only capture
-    // the standalone major line (e.g. "Business Administration (Business Information System)").
     const majorMatchEn = text.match(
         /(?<! of )\b(Management Sciences|Business Administration|Business Information System)\s*(?:\(([^)]+)\))?/i
     );
@@ -281,14 +284,29 @@ export function parseStudentInfo(rawText: string): StudentInfo | null {
     let rawTrack: string | undefined;
 
     if (majorMatchTh) {
-        rawMajor = majorMatchTh[1].replace(/^วิชา/, "");
-        rawTrack = trackMatchTh ? trackMatchTh[1].trim() : undefined;
+        const baseTerm = majorMatchTh[1].replace(/^วิชา/, "");
+        const parenTerm = parenMatchTh ? parenMatchTh[1].trim() : undefined;
+
+        // If there's a parenthesized sub-major, that IS the actual major
+        // (e.g. "สาขาบริหารธุรกิจ (ระบบสารสนเทศทางธุรกิจ)" → major is ระบบสารสนเทศทางธุรกิจ)
+        if (parenTerm) {
+            rawMajor = parenTerm;
+        } else {
+            rawMajor = baseTerm;
+        }
     } else if (majorMatchEn) {
-        rawMajor = majorMatchEn[1].trim();
-        rawTrack = majorMatchEn[2] ? majorMatchEn[2].trim() : undefined;
+        const baseEn = majorMatchEn[1].trim();
+        const parenEn = majorMatchEn[2] ? majorMatchEn[2].trim() : undefined;
+
+        // Same logic: parenthesized term is the specific major
+        if (parenEn) {
+            rawMajor = parenEn;
+        } else {
+            rawMajor = baseEn;
+        }
     }
 
-    const major = rawMajor ? "สาขา" + translateTerm(rawMajor) : "";
+    const major = rawMajor ? translateTerm(rawMajor) : "";
     const track = rawTrack ? translateTerm(rawTrack) : undefined;
 
     return {

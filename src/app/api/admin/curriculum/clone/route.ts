@@ -28,13 +28,11 @@ export async function POST(request: Request) {
                     name: newDetails.name,
                     startYear: newDetails.startYear ? Number(newDetails.startYear) : null,
                     endYear: newDetails.endYear ? Number(newDetails.endYear) : null,
-                    faculty: newDetails.faculty || null,
-                    department: newDetails.department || null,
-                    major: newDetails.major || null,
+                    departmentId: newDetails.departmentId || sourceCurriculum.departmentId || null,
                     track: newDetails.track || null,
                     isActive: newDetails.isActive ?? true,
-                    baseTemplateId: newDetails.baseTemplateId !== undefined ? newDetails.baseTemplateId : (sourceCurriculum as any).baseTemplateId,
-                } as any, // Schema workaround
+                    baseTemplateId: newDetails.baseTemplateId !== undefined ? newDetails.baseTemplateId : sourceCurriculum.baseTemplateId,
+                },
             });
 
             // 2. Fetch the entire category tree from the source

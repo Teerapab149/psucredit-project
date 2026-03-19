@@ -8,7 +8,27 @@ export async function GET() {
         const equivalencies = await prisma.subjectEquivalency.findMany({
             orderBy: { createdAt: "desc" }
         });
-        return NextResponse.json(equivalencies);
+
+        // Collect all codes and look up names from MasterSubject
+        const allCodes = new Set<string>();
+        for (const eq of equivalencies) {
+            allCodes.add(eq.newCode);
+            allCodes.add(eq.baseCode);
+        }
+
+        const masters = await prisma.masterSubject.findMany({
+            where: { code: { in: Array.from(allCodes) } },
+            select: { code: true, name: true },
+        });
+        const nameMap = new Map(masters.map(m => [m.code, m.name]));
+
+        const enriched = equivalencies.map(eq => ({
+            ...eq,
+            newName: nameMap.get(eq.newCode) || null,
+            baseName: nameMap.get(eq.baseCode) || null,
+        }));
+
+        return NextResponse.json(enriched);
     } catch (error) {
         console.error("Failed to fetch equivalencies:", error);
         return NextResponse.json([], { status: 500 });

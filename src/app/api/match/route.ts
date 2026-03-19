@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequiredCredits } from "@/lib/credit-utils";
+import { normalizeMajor } from "@/lib/normalize-major";
 import type { ParsedSubject, CategoryMatch, MatchResult } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +13,8 @@ export async function POST(request: Request) {
             curriculumYearId,
             studentInfo,
             track,
-        }: { subjects: ParsedSubject[]; curriculumYearId?: string; studentInfo?: any; track?: string } = body;
+            planId,
+        }: { subjects: ParsedSubject[]; curriculumYearId?: string; studentInfo?: any; track?: string; planId?: string } = body;
 
         const requestedTrack = track || "แผนปกติ";
 
@@ -31,37 +34,92 @@ export async function POST(request: Request) {
         }
 
         if (!curriculumYear && studentInfo) {
-            // Find all active, non-template curriculums up to the student's admission year
-            const matchingCurriculums = await prisma.curriculumYear.findMany({
-                where: {
-                    isActive: true,
-                    isTemplate: false,
-                    startYear: { lte: studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999 },
-                },
-                orderBy: { startYear: "desc" },
-            });
+            // ─── Structured curriculum matching ───
+            // Match by faculty + department + major + year range using a direct
+            // Prisma WHERE clause instead of fuzzy in-memory matching.
 
-            // Normalise a field value: remove all whitespace and uppercase for
-            // flexible matching regardless of spacing or casing differences.
-            const norm = (v?: string | null) => (v ?? "").replace(/\s+/g, "").toUpperCase();
+            const admYear = studentInfo.admissionYear > 0 ? studentInfo.admissionYear : 9999;
+            const normalizedMajor = normalizeMajor(studentInfo.major);
+            const majorToMatch = normalizedMajor ?? studentInfo.major ?? null;
 
-            // Find the best match
-            for (const curr of matchingCurriculums) {
-                const facultyMatch = !curr.faculty || norm(curr.faculty) === norm(studentInfo.faculty);
-                const majorMatch   = !curr.major   || norm(curr.major)   === norm(studentInfo.major);
-                const trackMatch   = !curr.track   || norm(curr.track)   === norm(studentInfo.track);
+            // Step 1: Try exact match — faculty + major + year range
+            if (majorToMatch) {
+                curriculumYear = await prisma.curriculumYear.findFirst({
+                    where: {
+                        isActive: true,
+                        isTemplate: false,
+                        major: majorToMatch,
+                        startYear: { lte: admYear },
+                        OR: [
+                            { endYear: null },
+                            { endYear: { gte: admYear } },
+                        ],
+                    },
+                    orderBy: { startYear: "desc" },
+                }) as any;
+            }
 
-                if (facultyMatch && majorMatch && trackMatch) {
-                    curriculumYear = curr;
-                    break;
+            // Step 2: Fallback — major match without endYear constraint
+            if (!curriculumYear && majorToMatch) {
+                curriculumYear = await prisma.curriculumYear.findFirst({
+                    where: {
+                        isActive: true,
+                        isTemplate: false,
+                        major: majorToMatch,
+                        startYear: { lte: admYear },
+                    },
+                    orderBy: { startYear: "desc" },
+                }) as any;
+            }
+
+            // Step 3: Fallback — match by department name (for non-BBA departments
+            // like การบัญชี or รัฐประศาสนศาสตร์ where major is NULL in DB)
+            // IMPORTANT: Do NOT auto-select for BBA ("บริหารธุรกิจ") when major
+            // is unknown — BBA has 6 sub-majors, guessing would be wrong.
+            if (!curriculumYear && studentInfo.major) {
+                const deptName = normalizedMajor ?? studentInfo.major;
+                const isBBA = /บริหารธุรกิจ/i.test(deptName);
+
+                if (!isBBA) {
+                    curriculumYear = await prisma.curriculumYear.findFirst({
+                        where: {
+                            isActive: true,
+                            isTemplate: false,
+                            major: null,
+                            department: { name: { contains: deptName } },
+                            startYear: { lte: admYear },
+                        },
+                        orderBy: { startYear: "desc" },
+                    }) as any;
                 }
+            }
+
+            // Step 4: Last resort — only pick a generic curriculum if there is
+            // exactly one non-template match (avoids ambiguous BBA selections)
+            if (!curriculumYear) {
+                const candidates = await prisma.curriculumYear.findMany({
+                    where: {
+                        isActive: true,
+                        isTemplate: false,
+                        startYear: { lte: admYear },
+                    },
+                    orderBy: { startYear: "desc" },
+                    take: 2,
+                });
+                if (candidates.length === 1) {
+                    curriculumYear = candidates[0] as any;
+                }
+                // If multiple candidates, leave curriculumYear null —
+                // the user will need to select manually on the verify page
             }
 
             console.log(
                 "[match] auto-select →",
-                "faculty:", studentInfo.faculty,
-                "| major:", studentInfo.major,
-                "| selected:", curriculumYear?.name ?? "none"
+                "admissionYear:", admYear,
+                "| major (raw):", studentInfo.major,
+                "| major (normalized):", normalizedMajor,
+                "| selected:", curriculumYear?.name ?? "none",
+                "| startYear:", (curriculumYear as any)?.startYear ?? "N/A"
             );
         }
 
@@ -92,8 +150,6 @@ export async function POST(request: Request) {
         }
 
         // Fetch subject equivalencies for mapping.
-        // Sanitize both sides: strip dashes/spaces and uppercase so that
-        // minor formatting differences never cause a missed lookup.
         const sanitize = (code: string) => code.replace(/[-\s]/g, "").toUpperCase();
         const equivalencies = await prisma.subjectEquivalency.findMany();
         const equivalencyMap = new Map(
@@ -110,11 +166,6 @@ export async function POST(request: Request) {
             orderBy: { sortOrder: "asc" },
         });
 
-        // No need to merge Base Template Categories
-        // Categories from the base template are now physically cloned 
-        // into the Faculty Curriculum via the Clone step.
-        // We strictly match against the active faculty tree.
-
         // Build tree structure
         const categoryMap = new Map<string, (typeof categories)[0]>();
         const rootCategories: (typeof categories)[0][] = [];
@@ -127,14 +178,12 @@ export async function POST(request: Request) {
         }
 
         // Tracks every student subject code that has been consumed (globally).
-        // A subject is consumed once and cannot match again in any other category
-        // or appear in the Phase 2 spillover list.
         const matchedCodes = new Set<string>();
 
         // Recursive match function
-        function matchCategory(
+        async function matchCategory(
             cat: (typeof categories)[0]
-        ): CategoryMatch | null {
+        ): Promise<CategoryMatch | null> {
             // Pruning Logic: Skip category if it explicitly belongs to another track
             const catNameLower = cat.name.toLowerCase();
             const isNormalPlanCat = catNameLower.includes("แผนปกติ") || catNameLower.includes("normal plan");
@@ -147,7 +196,8 @@ export async function POST(request: Request) {
             if (isCoopPlanCat && !isRequestedCoop) return null;
 
             const children = categories.filter((c: (typeof categories)[0]) => c.parentId === cat.id);
-            const childMatches = children.map(matchCategory).filter(Boolean) as CategoryMatch[];
+            const childResults = await Promise.all(children.map(matchCategory));
+            const childMatches = childResults.filter(Boolean) as CategoryMatch[];
 
             // Match subjects at this leaf level
             const matchedSubjects = [];
@@ -167,7 +217,7 @@ export async function POST(request: Request) {
                         const isUserBaseDbNew = cleanUserCode === equivalencyMap.get(cleanDbCode);
                         // 4. Sibling match (both are new codes sharing the same base code)
                         const userBase = equivalencyMap.get(cleanUserCode);
-                        const dbBase   = equivalencyMap.get(cleanDbCode);
+                        const dbBase = equivalencyMap.get(cleanDbCode);
                         const isSiblingMatch = userBase !== undefined && userBase === dbBase;
 
                         const isMatch = isDirectMatch || isUserNewDbBase || isUserBaseDbNew || isSiblingMatch;
@@ -209,13 +259,15 @@ export async function POST(request: Request) {
                 0
             );
 
+            const resolvedRequired = await getRequiredCredits(cat.id, planId);
+
             return {
                 categoryId: cat.id,
                 categoryName: cat.name,
                 parentName: cat.parentId
                     ? categoryMap.get(cat.parentId)?.name || null
                     : null,
-                requiredCredits: cat.requiredCredits,
+                requiredCredits: resolvedRequired,
                 completedCredits: ownCompleted + childCompleted,
                 inProgressCredits: ownInProgress + childInProgress,
                 isElective: cat.isElective,
@@ -225,15 +277,14 @@ export async function POST(request: Request) {
             };
         }
 
-        const result: CategoryMatch[] = rootCategories.map(matchCategory).filter(Boolean) as CategoryMatch[];
+        const rootResults = await Promise.all(rootCategories.map(matchCategory));
+        const result: CategoryMatch[] = rootResults.filter(Boolean) as CategoryMatch[];
 
         // --- Phase 2: Waterfall Spillover Logic ---
-        // Build the unmatched list directly from matchedCodes — no split() hacks needed.
         let currentUnmatchedSubjects = subjects.filter(
             (s) => !matchedCodes.has(s.code)
         );
 
-        // Calculate credits for a given category (own + children)
         const recalculateCategoryCredits = (catMatch: CategoryMatch) => {
             const ownCompleted = catMatch.matchedSubjects
                 .filter((s) => s.status === "COMPLETED")
@@ -257,11 +308,49 @@ export async function POST(request: Request) {
             catMatch.inProgressCredits = ownInProgress + childInProgress;
         };
 
-        // Helper to spillover subjects into a specific category type
+        // --- Phase 1.5: Within-Category Overflow Extraction ---
+        // For any leaf category where matched credits exceed the required credits,
+        // extract the excess subjects to the unmatched pool so they can spill over.
+        const extractExcessSubjects = (catMatch: CategoryMatch) => {
+            if (!catMatch.children || catMatch.children.length === 0) {
+                if (catMatch.requiredCredits > 0 && catMatch.completedCredits + catMatch.inProgressCredits > catMatch.requiredCredits) {
+                    console.log(`[extractExcessSubjects] HIT: ${catMatch.categoryName}. Credits: ${catMatch.completedCredits + catMatch.inProgressCredits}/${catMatch.requiredCredits}`);
+                    let total = 0;
+                    const keptSubjects = [];
+                    
+                    const sortedSubjects = [...catMatch.matchedSubjects].sort((a, b) => {
+                        if (a.status === b.status) return 0;
+                        return a.status === "COMPLETED" ? -1 : 1;
+                    });
+
+                    for (const sub of sortedSubjects) {
+                        if (total + sub.credits <= catMatch.requiredCredits) {
+                            keptSubjects.push(sub);
+                            total += sub.credits;
+                        } else {
+                            // Look up original subject for full payload
+                            const originalSub = subjects.find(s => s.code === sub.code);
+                            if (originalSub) {
+                                currentUnmatchedSubjects.push(originalSub);
+                                matchedCodes.delete(sub.code);
+                            }
+                        }
+                    }
+                    
+                    catMatch.matchedSubjects = keptSubjects;
+                }
+            } else {
+                catMatch.children.forEach(extractExcessSubjects);
+            }
+        };
+
+        result.forEach(extractExcessSubjects);
+        result.forEach(recalculateCategoryCredits);
+
         const processSpillover = (spilloverType: string) => {
-            // Find all categories configured for this spillover type
+            console.log(`[processSpillover] START: ${spilloverType}. Unmatched count: ${currentUnmatchedSubjects.length}`);
             const targetCategories: CategoryMatch[] = [];
-            
+
             const findTargets = (node: CategoryMatch) => {
                 const dbCat = categoryMap.get(node.categoryId);
                 if (dbCat && (dbCat as any).spilloverType === spilloverType) {
@@ -271,27 +360,21 @@ export async function POST(request: Request) {
                     node.children.forEach(findTargets);
                 }
             };
-            
+
             result.forEach(findTargets);
 
             for (const targetCat of targetCategories) {
-                // If there are no unmatched subjects left, stop
                 if (currentUnmatchedSubjects.length === 0) break;
 
                 const dbCat = categoryMap.get(targetCat.categoryId);
                 if (!dbCat) continue;
-                
-                // Keep filling until maxCredits is reached, or required if max is not set
-                const limit = dbCat.maxCredits || dbCat.requiredCredits;
 
-                // How much more can we fit?
+                const limit = dbCat.maxCredits || dbCat.requiredCredits;
                 let spaceLeft = limit - targetCat.completedCredits - targetCat.inProgressCredits;
 
                 if (spaceLeft > 0) {
                     const remainingForNextBucket = [];
                     for (const subject of currentUnmatchedSubjects) {
-                        // As long as the bucket still needs credits, consume the next available subject.
-                        // It is perfectly fine if spaceLeft becomes negative (Natural Overflow).
                         if (spaceLeft > 0) {
                             targetCat.matchedSubjects.push({
                                 code: subject.code,
@@ -300,24 +383,21 @@ export async function POST(request: Request) {
                                 grade: subject.grade,
                                 status: subject.status,
                             });
-                            spaceLeft -= subject.credits; // Might become negative, effectively filling the bucket and catching the overflow.
+                            spaceLeft -= subject.credits;
                         } else {
-                            // Bucket is full (spaceLeft <= 0)
                             remainingForNextBucket.push(subject);
                         }
                     }
                     currentUnmatchedSubjects = remainingForNextBucket;
                 }
             }
-            
-            // Recalculate everything after spillover
+
             result.forEach(recalculateCategoryCredits);
         };
 
         // Run the Waterfall!
-        // 1. Minor Subjects first
+        processSpillover("GE_ELECTIVE");
         processSpillover("MINOR");
-        // 2. Free Electives get whatever is left
         processSpillover("FREE_ELECTIVE");
 
         const unmatchedSubjects = currentUnmatchedSubjects;
@@ -336,6 +416,7 @@ export async function POST(request: Request) {
         );
 
         const matchResult: MatchResult = {
+            curriculumYearId: curriculumYear.id,
             curriculumYear: (curriculumYear as any).startYear || 0,
             curriculumName: curriculumYear.name,
             categories: result,

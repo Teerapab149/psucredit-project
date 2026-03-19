@@ -37,6 +37,8 @@ interface SubjectEquivalency {
     id: string;
     newCode: string;
     baseCode: string;
+    newName: string | null;
+    baseName: string | null;
     createdAt: string;
 }
 
@@ -235,11 +237,21 @@ export default function EquivalencyPage() {
                         ) : (
                             equivalencies.map((eq) => (
                                 <TableRow key={eq.id}>
-                                    <TableCell className="font-mono font-bold text-slate-700">{eq.newCode}</TableCell>
+                                    <TableCell>
+                                        <span className="font-mono font-bold text-slate-700">{eq.newCode}</span>
+                                        {eq.newName && (
+                                            <span className="block text-xs text-slate-400 mt-0.5">{eq.newName}</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-center">
                                         <ArrowLeftRight className="h-4 w-4 text-slate-300 inline" />
                                     </TableCell>
-                                    <TableCell className="font-mono font-bold text-emerald-600">{eq.baseCode}</TableCell>
+                                    <TableCell>
+                                        <span className="font-mono font-bold text-emerald-600">{eq.baseCode}</span>
+                                        {eq.baseName && (
+                                            <span className="block text-xs text-slate-400 mt-0.5">{eq.baseName}</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <Button
                                             variant="ghost"

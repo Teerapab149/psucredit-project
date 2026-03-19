@@ -8,11 +8,30 @@ export async function GET() {
     try {
         const years = await prisma.curriculumYear.findMany({
             include: {
+                department: { include: { faculty: true } },
                 categories: {
                     where: { parentId: null },
                     include: {
                         children: {
-                            include: { subjects: true, children: { include: { subjects: true } } },
+                            include: {
+                                subjects: true,
+                                children: {
+                                    include: {
+                                        subjects: true,
+                                        children: {
+                                            include: {
+                                                subjects: true,
+                                                children: {
+                                                    include: { subjects: true },
+                                                    orderBy: { sortOrder: "asc" },
+                                                },
+                                            },
+                                            orderBy: { sortOrder: "asc" },
+                                        },
+                                    },
+                                    orderBy: { sortOrder: "asc" },
+                                },
+                            },
                             orderBy: { sortOrder: "asc" },
                         },
                         subjects: true,
@@ -40,13 +59,12 @@ export async function POST(request: Request) {
                 startYear: body.startYear ? Number(body.startYear) : null,
                 endYear: body.endYear ? Number(body.endYear) : null,
                 name: body.name,
-                faculty: body.faculty || null,
-                department: body.department || null,
+                departmentId: body.departmentId || null,
                 major: body.major || null,
                 track: body.track || null,
                 isTemplate: body.isTemplate || false,
                 baseTemplateId: baseTemplateId,
-            } as any, // Bypass TS Error due to Prisma client mis-sync
+            },
         });
 
         // Clone base template categories if specified
@@ -104,7 +122,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, name, startYear, endYear, faculty, department, major, track, isActive, baseTemplateId } = body;
+        const { id, name, startYear, endYear, departmentId, major, track, isActive, baseTemplateId } = body;
 
         if (!id) {
             return NextResponse.json({ error: "Missing curriculum ID" }, { status: 400 });
@@ -116,13 +134,12 @@ export async function PUT(request: Request) {
                 name,
                 startYear: startYear ? Number(startYear) : null,
                 endYear: endYear ? Number(endYear) : null,
-                faculty: faculty || null,
-                department: department || null,
-                major: major || null,
+                departmentId: departmentId !== undefined ? (departmentId || null) : undefined,
+                major: major !== undefined ? (major || null) : undefined,
                 track: track || null,
                 isActive: isActive !== undefined ? isActive : undefined,
                 baseTemplateId: baseTemplateId !== undefined ? (baseTemplateId || null) : undefined,
-            } as any,
+            },
         });
 
         return NextResponse.json(updatedCurriculum);
